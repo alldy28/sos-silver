@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Pastikan ini sesuai dengan database Anda
+  url      = env("DATABASE_URL")
+}
+
+// Model untuk Produk Anda
+model SossilverProduct {
+  id              String   @id @default(cuid())
+  nama            String
+  series          String?
+  gramasi         Float    // Gunakan Float untuk angka desimal
+  fineness        Int      // Fineness (misal: 999) adalah angka bulat
+  hargaJual       Int
+  hargaBuyback    Int
+  tahunPembuatan  Int?
+  gambarUrl       String?
+  createdAt       DateTime @default(now())
+
+  // Relasi: Satu produk punya BANYAK kode
+  codes           GeneratedCode[]
+}
+
+// Model untuk Kode Unik
+model GeneratedCode {
+  id            String   @id @default(cuid())
+  kode          String   @unique // Kode 8 digit yang unik
+  sequentialId  Int?     // Sesuai kolom Anda
+  isUsed        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  // Relasi: Satu kode milik SATU produk
+  product   SossilverProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+}
