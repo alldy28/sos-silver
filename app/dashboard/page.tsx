@@ -12,6 +12,8 @@ import {
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+// 1. TAMBAHKAN IMPORT StatCard dari file eksternal
+import { StatCard } from "./products/components/StatCard";
 
 /**
  * Fungsi untuk mengambil data statistik utama dari database.
@@ -28,6 +30,14 @@ async function getDashboardStats() {
         db.sossilverProduct.findMany({
           orderBy: { createdAt: "desc" },
           take: 5, // Ambil 5 produk terbaru
+          select: {
+            // Hanya pilih data yang dibutuhkan
+            id: true,
+            nama: true,
+            gambarUrl: true,
+            gramasi: true,
+            createdAt: true,
+          },
         }),
       ]);
 
@@ -67,12 +77,18 @@ export default async function DashboardPage() {
           icon={<Package className="w-8 h-8 text-blue-500" />}
           description="Jumlah semua produk unik"
         />
-        <StatCard
-          title="Total Kode Dibuat"
-          value={codeCount.toLocaleString("id-ID")}
-          icon={<QrCode className="w-8 h-8 text-green-500" />}
-          description="Jumlah semua kode verifikasi"
-        />
+        <Link href="/dashboard/products/list-kode">
+          {/* Sekarang ini akan menggunakan StatCard yang diimpor, 
+            yang sudah menerima 'className' 
+          */}
+          <StatCard
+            title="Total Kode Dibuat"
+            value={codeCount.toLocaleString("id-ID")}
+            icon={<QrCode className="w-8 h-8 text-green-500" />}
+            description="Jumlah semua kode verifikasi"
+            className="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+          />
+        </Link>
         <StatCard
           title="Kode Telah Digunakan"
           value={usedCodeCount.toLocaleString("id-ID")}
@@ -119,38 +135,7 @@ export default async function DashboardPage() {
 
 // --- Komponen-Komponen Pendukung ---
 
-/**
- * Komponen Kartu Statistik (KPI)
- */
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: ReactNode;
-  description: string;
-}
-
-function StatCard({ title, value, icon, description }: StatCardProps) {
-  return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-      <div className="flex items-center justify-between mb-4">
-        <div className="p-3 rounded-full bg-gray-100 dark:bg-gray-700">
-          {icon}
-        </div>
-        <span className="text-3xl font-bold text-gray-900 dark:text-white">
-          {value}
-        </span>
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-          {title}
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {description}
-        </p>
-      </div>
-    </div>
-  );
-}
+// 2. DEFINISI LOKAL StatCard DAN StatCardProps DIHAPUS DARI SINI
 
 /**
  * Komponen Tombol Aksi Cepat
@@ -185,10 +170,14 @@ function QuickActionCard({
  * Komponen Kartu Aktivitas/Produk Terbaru
  */
 interface RecentActivityCardProps {
-  products: Pick<
-    SossilverProduct,
-    "id" | "nama" | "gambarUrl" | "gramasi" | "createdAt"
-  >[];
+  // Kita bisa gunakan tipe parsial yang diambil oleh getDashboardStats
+  products: {
+    id: string;
+    nama: string;
+    gambarUrl: string | null;
+    gramasi: number;
+    createdAt: Date;
+  }[];
 }
 
 function RecentActivityCard({ products }: RecentActivityCardProps) {

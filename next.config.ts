@@ -20,7 +20,18 @@ const nextConfig = {
       // Anda mungkin perlu menambahkan domain lain di sini
       // jika 'product.gambarUrl' Anda berasal dari domain eksternal lain
     ]
+  },
+  experimental: {
+  serverActions: {
+    allowedOrigins: [
+      'localhost:3000',
+      '*.devtunnels.ms', // Izinkan semua devtunnels
+      '4gw2rzz0-3000.asse.devtunnels.ms',
+      '103.6.55.38',
+      'sossilver.co.id', // Atau spesifik tunnel Anda
+    ]
   }
+}
 }
 
 module.exports = nextConfig

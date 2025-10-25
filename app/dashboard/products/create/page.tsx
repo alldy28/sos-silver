@@ -4,7 +4,7 @@ import Link from "next/link";
 
 /**
  * Halaman Form untuk Menambah Produk Baru
- * Ini adalah Server Component yang menggunakan Server Action
+ * Server Component yang menggunakan Server Action
  */
 export default function CreateProductPage() {
   return (
@@ -12,39 +12,40 @@ export default function CreateProductPage() {
       <div className="max-w-3xl mx-auto">
         {/* Tombol Kembali */}
         <Link
-          href="/dashboard"
-          className="inline-flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white mb-4"
+          href="/dashboard/products"
+          className="inline-flex items-center text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Kembali ke Dashboard
+          Kembali ke Daftar Produk
         </Link>
 
-        {/* Form Utama */}
+        {/* Form Tambah Produk */}
         <form
           action={createProductAction}
           className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
         >
+          {/* Header */}
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
             Tambah Produk Baru
           </h1>
 
-          {/* Grid untuk layout form */}
+          {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Nama Produk */}
             <div className="md:col-span-2">
               <label
                 htmlFor="nama"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Nama Produk
+                Nama Produk <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="nama"
                 id="nama"
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Contoh: Logam Mulia Sossilver"
+                placeholder="Contoh: SOSsilver xxxx"
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white px-3 py-2"
               />
             </div>
 
@@ -52,16 +53,16 @@ export default function CreateProductPage() {
             <div>
               <label
                 htmlFor="series"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Seri (Opsional)
+                Seri
               </label>
               <input
                 type="text"
                 name="series"
                 id="series"
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Contoh: Edisi Batik"
+                placeholder="Contoh: SERIES-2024"
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white px-3 py-2"
               />
             </div>
 
@@ -69,9 +70,9 @@ export default function CreateProductPage() {
             <div>
               <label
                 htmlFor="gramasi"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Gramasi (cth: 0.5)
+                Gramasi (gram) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -79,8 +80,9 @@ export default function CreateProductPage() {
                 id="gramasi"
                 required
                 step="0.001"
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="0.5"
+                min="0"
+                placeholder="Contoh: 10.5"
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white px-3 py-2"
               />
             </div>
 
@@ -88,17 +90,20 @@ export default function CreateProductPage() {
             <div>
               <label
                 htmlFor="fineness"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Kadar (Fineness)
+                Kadar (Fineness) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 name="fineness"
                 id="fineness"
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="999"
+                min="0"
+                max="999.9"
+                step="0.1"
+                placeholder="Contoh: 999.9"
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white px-3 py-2"
               />
             </div>
 
@@ -106,7 +111,7 @@ export default function CreateProductPage() {
             <div>
               <label
                 htmlFor="tahunPembuatan"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Tahun Pembuatan
               </label>
@@ -114,8 +119,10 @@ export default function CreateProductPage() {
                 type="number"
                 name="tahunPembuatan"
                 id="tahunPembuatan"
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="2024"
+                min="1900"
+                max={new Date().getFullYear()}
+                placeholder={`Contoh: ${new Date().getFullYear()}`}
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white px-3 py-2"
               />
             </div>
 
@@ -123,17 +130,19 @@ export default function CreateProductPage() {
             <div>
               <label
                 htmlFor="hargaJual"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Harga Jual (IDR)
+                Harga Jual (IDR) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 name="hargaJual"
                 id="hargaJual"
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="1500000"
+                min="0"
+                step="1000"
+                placeholder="Contoh: 10000000"
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white px-3 py-2"
               />
             </div>
 
@@ -141,17 +150,19 @@ export default function CreateProductPage() {
             <div>
               <label
                 htmlFor="hargaBuyback"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                Harga Buyback (IDR)
+                Harga Buyback (IDR) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 name="hargaBuyback"
                 id="hargaBuyback"
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="1350000"
+                min="0"
+                step="1000"
+                placeholder="Contoh: 9500000"
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white px-3 py-2"
               />
             </div>
 
@@ -159,31 +170,34 @@ export default function CreateProductPage() {
             <div className="md:col-span-2">
               <label
                 htmlFor="gambarUrl"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                URL Gambar (Opsional)
+                URL Gambar
               </label>
               <input
-                type="text"
+                type="url"
                 name="gambarUrl"
                 id="gambarUrl"
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                placeholder="https://.../gambar.png"
+                placeholder="https://example.com/image.jpg"
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white px-3 py-2"
               />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Opsional: Masukkan URL gambar produk (JPG, PNG, WebP)
+              </p>
             </div>
           </div>
 
-          {/* Tombol Aksi */}
-          <div className="flex justify-end gap-4 mt-8">
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <Link
-              href="/dashboard"
-              className="inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600"
+              href="/dashboard/products"
+              className="inline-flex justify-center items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
             >
               Batal
             </Link>
             <button
               type="submit"
-              className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
             >
               Simpan Produk
             </button>
