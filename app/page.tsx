@@ -51,9 +51,15 @@ function SiteHeader() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <Gem className="h-6 w-6 text-slate-800" />
-            <span className="text-xl font-bold text-slate-900">Sossilver</span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logosos.png" // Mengambil dari /public/logosos.png
+              alt="Sossilver Logo"
+              width={140} // Atur lebar asli gambar (atau rasio)
+              height={40} // Atur tinggi asli gambar (atau rasio)
+              className="h-10 w-auto" // Tinggi 40px, lebar otomatis
+              priority // Membantu LCP
+            />
           </Link>
 
           {/* Navigasi */}
