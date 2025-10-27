@@ -11,39 +11,48 @@ function SiteHeader() {
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-sm border-b border-gray-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
+          {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/logosos-baru.png"
+              src="/logosos-baru.png" // Mengambil dari /public/logosos-baru.png
               alt="Sossilver Logo"
-              width={140}
-              height={40}
-              className="h-10 w-auto"
-              priority
+              width={140} // Atur lebar asli gambar (atau rasio)
+              height={40} // Atur tinggi asli gambar (atau rasio)
+              className="h-10 w-auto" // Tinggi 40px, lebar otomatis
+              priority // Membantu LCP
             />
+            <div className="text-lg font-semibold text-slate-800">
+              {" "}
+              SoS Silver{" "}
+            </div>
           </Link>
+
+          {/* Navigasi */}
           <nav className="hidden md:flex md:gap-8">
             <Link
-              href="/#produk"
+              href="#produk"
               className="text-sm font-medium text-gray-600 hover:text-gray-900"
             >
               Produk
             </Link>
             <Link
-              href="/#fitur"
+              href="#fitur"
               className="text-sm font-medium text-gray-600 hover:text-gray-900"
             >
               Keunggulan
             </Link>
             <Link
-              href="/verifikasi"
+              href="/verif"
               className="text-sm font-medium text-gray-600 hover:text-gray-900"
             >
               Verifikasi
             </Link>
           </nav>
+
+          {/* Tombol Aksi */}
           <div className="flex items-center gap-4">
             <Link
-              href="/dashboard"
+              href="/dashboard" // <-- Mengarah ke dasbor login Anda
               className="inline-flex items-center justify-center px-5 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-slate-800 hover:bg-slate-700 transition-colors"
             >
               Login Admin
@@ -61,15 +70,22 @@ function SiteFooter() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <Image
-              src="/logosos-baru"
-              alt="Sossilver Logo"
-              width={120}
-              height={34}
-              className="h-8 w-auto opacity-80"
-            />
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logosos-baru.png" // Mengambil dari /public/logosos-baru.png
+                alt="Sossilver Logo"
+                width={140} // Atur lebar asli gambar (atau rasio)
+                height={40} // Atur tinggi asli gambar (atau rasio)
+                className="h-10 w-auto" // Tinggi 40px, lebar otomatis
+                priority // Membantu LCP
+              />
+              <div className="text-lg font-semibold text-slate-800">
+                {" "}
+                SoS Silver{" "}
+              </div>
+            </Link>
           </div>
-          <nav className="flex gap-6">
+          {/* <nav className="flex gap-6">
             <Link
               href="#"
               className="text-sm text-gray-600 hover:text-gray-900"
@@ -88,11 +104,11 @@ function SiteFooter() {
             >
               FAQ
             </Link>
-          </nav>
+          </nav> */}
         </div>
         <div className="mt-8 border-t border-gray-300 pt-8 text-center">
           <p className="text-sm text-gray-500">
-            &copy; {new Date().getFullYear()} Sossilver.co.id. Hak Cipta
+            &copy; {new Date().getFullYear()} sosilver.co.id. Hak Cipta
             Dilindungi.
           </p>
         </div>

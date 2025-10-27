@@ -14,28 +14,28 @@ import {
 const featuredProducts = [
   {
     id: "2",
-    nama: "Sossilver Bar 100 gr",
+    nama: "SoS Silver Bar 100 gr",
     gramasi: 100,
     fineness: 999.9,
     gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/sos.png",
   },
   {
     id: "1",
-    nama: "Sossilver Bar 50 gr",
+    nama: "SoS Silver Bar 50 gr",
     gramasi: 50,
     fineness: 999.9,
     gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/50-min.png",
   },
   {
     id: "3",
-    nama: "Sossilver Bar 250 gr",
+    nama: "SoS Silver Bar 250 gr",
     gramasi: 250,
     fineness: 999.9,
     gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/250-gr-min.png",
   },
   {
     id: "4",
-    nama: "Sossilver Bar 500 gr",
+    nama: "SoS Silver Bar 500 gr",
     gramasi: 500,
     fineness: 999.9,
     gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/500-gr-min.png",
@@ -60,7 +60,7 @@ function SiteHeader() {
               className="h-10 w-auto" // Tinggi 40px, lebar otomatis
               priority // Membantu LCP
             />
-            <div className="text-lg font-semibold text-slate-800"> SOS Silver </div>
+            <div className="text-lg font-semibold text-slate-800"> SoS Silver </div>
           </Link>
 
           {/* Navigasi */}
@@ -120,7 +120,7 @@ function SiteFooter() {
               />
               <div className="text-lg font-semibold text-slate-800">
                 {" "}
-                SOS Silver{" "}
+                SoS Silver{" "}
               </div>
             </Link>
           </div>
@@ -147,7 +147,7 @@ function SiteFooter() {
         </div>
         <div className="mt-8 border-t border-gray-300 pt-8 text-center">
           <p className="text-sm text-gray-500">
-            &copy; {new Date().getFullYear()} Sossilver.co.id. Hak Cipta
+            &copy; {new Date().getFullYear()} sosilver.co.id. Hak Cipta
             Dilindungi.
           </p>
         </div>
@@ -178,7 +178,7 @@ export default function Homepage() {
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-gray-600 max-w-lg mx-auto lg:mx-0">
-                  Temukan kemurnian perak 999.9 bersertifikat dari Sossilver.
+                  Temukan kemurnian perak 999.9 bersertifikat dari SoS Silver.
                   Pilihan terpercaya untuk melindungi nilai aset Anda dengan
                   standar tertinggi.
                 </p>
@@ -195,6 +195,12 @@ export default function Homepage() {
                     className="inline-flex items-center justify-center px-8 py-3 border border-gray-300 text-base font-medium rounded-md text-slate-700 bg-white hover:bg-gray-50 transition-colors shadow-lg"
                   >
                     Verifikasi Keaslian
+                  </Link>
+                  <Link
+                    href="/update-harga"
+                    className="inline-flex items-center justify-center px-8 py-3 border border-gray-300 text-base font-medium rounded-md text-slate-700 bg-white hover:bg-gray-50 transition-colors shadow-lg"
+                  >
+                    Update harga
                   </Link>
                 </div>
               </div>
@@ -219,7 +225,7 @@ export default function Homepage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
-                Mengapa Memilih Sossilver?
+                Mengapa Memilih SoS Silver?
               </h2>
               <p className="mt-4 text-lg text-gray-600">
                 Kami memberikan jaminan terbaik untuk investasi perak Anda.
@@ -235,7 +241,7 @@ export default function Homepage() {
                   Kemurnian 999.9
                 </h3>
                 <p className="text-gray-600">
-                  Setiap produk Sossilver memiliki kadar kemurnian perak 999.9,
+                  Setiap produk SoS Silver memiliki kadar kemurnian perak 999.9,
                   standar investasi internasional.
                 </p>
               </div>
