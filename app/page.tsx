@@ -53,7 +53,7 @@ function SiteHeader() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/logosos.png" // Mengambil dari /public/logosos.png
+              src="/logosos-baru.png" // Mengambil dari /public/logosos-baru.png
               alt="Sossilver Logo"
               width={140} // Atur lebar asli gambar (atau rasio)
               height={40} // Atur tinggi asli gambar (atau rasio)
@@ -111,7 +111,7 @@ function SiteFooter() {
           <div className="flex items-center gap-2 mb-4 md:mb-0">
             <Link href="/" className="flex items-center">
               <Image
-                src="/logosos.png" // Mengambil dari /public/logosos.png
+                src="/logosos-baru.png" // Mengambil dari /public/logosos-baru.png
                 alt="Sossilver Logo"
                 width={140} // Atur lebar asli gambar (atau rasio)
                 height={40} // Atur tinggi asli gambar (atau rasio)
