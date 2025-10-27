@@ -13,32 +13,32 @@ import {
 // Nanti Anda bisa mengambil ini dari database jika mau
 const featuredProducts = [
   {
-    id: "1",
-    nama: "Sossilver Bar 10 gr",
+    id: "2",
+    nama: "Sossilver Bar 100 gr",
     gramasi: 100,
     fineness: 999.9,
     gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/sos.png",
   },
   {
-    id: "2",
+    id: "1",
     nama: "Sossilver Bar 50 gr",
     gramasi: 50,
     fineness: 999.9,
-    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/sos.png",
+    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/50-min.png",
   },
   {
     id: "3",
     nama: "Sossilver Bar 250 gr",
     gramasi: 250,
     fineness: 999.9,
-    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/sos.png",
+    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/250-gr-min.png",
   },
   {
     id: "4",
     nama: "Sossilver Bar 500 gr",
     gramasi: 500,
     fineness: 999.9,
-    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/sos.png",
+    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/500-gr-min.png",
   },
 ];
 
@@ -60,6 +60,7 @@ function SiteHeader() {
               className="h-10 w-auto" // Tinggi 40px, lebar otomatis
               priority // Membantu LCP
             />
+            <div className="text-lg font-semibold text-slate-800"> SOS Silver </div>
           </Link>
 
           {/* Navigasi */}
@@ -108,10 +109,20 @@ function SiteFooter() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <Gem className="h-5 w-5 text-slate-700" />
-            <span className="text-lg font-semibold text-slate-800">
-              Sossilver
-            </span>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logosos.png" // Mengambil dari /public/logosos.png
+                alt="Sossilver Logo"
+                width={140} // Atur lebar asli gambar (atau rasio)
+                height={40} // Atur tinggi asli gambar (atau rasio)
+                className="h-10 w-auto" // Tinggi 40px, lebar otomatis
+                priority // Membantu LCP
+              />
+              <div className="text-lg font-semibold text-slate-800">
+                {" "}
+                SOS Silver{" "}
+              </div>
+            </Link>
           </div>
           <nav className="flex gap-6">
             <Link
