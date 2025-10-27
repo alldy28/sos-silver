@@ -30,13 +30,13 @@ function SiteHeader() {
           {/* Navigasi */}
           <nav className="hidden md:flex md:gap-8">
             <Link
-              href="#produk"
+              href="/#produk"
               className="text-sm font-medium text-gray-600 hover:text-gray-900"
             >
               Produk
             </Link>
             <Link
-              href="#fitur"
+              href="/#fitur"
               className="text-sm font-medium text-gray-600 hover:text-gray-900"
             >
               Keunggulan
