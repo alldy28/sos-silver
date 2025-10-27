@@ -46,3 +46,9 @@ model User {
   email    String @unique
   password String // Kita akan simpan password yang sudah di-hash
 }
+
+
+model PriceImage {
+  id       String @id @default("current_price_list")
+  imageUrl String // URL lengkap dari Imgur/penyimpanan lain
+}
