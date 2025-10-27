@@ -133,7 +133,7 @@ export default async function PublicUpdateHargaPage() {
       <main className="flex-grow container mx-auto px-4 py-12 max-w-4xl">
         <div className="bg-white p-6 sm:p-10 rounded-lg shadow-lg">
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-8">
-            Daftar Harga Jual & Buyback Sossilver
+            Daftar Harga
           </h1>
 
           {currentImageUrl ? (

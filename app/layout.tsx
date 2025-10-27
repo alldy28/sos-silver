@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 function WhatsAppBubble() {
   // --- GANTI NOMOR DAN PESAN DI SINI ---
   const phoneNumber = "628131114586"; // GANTI DENGAN NOMOR WA ADMIN (Format 62...)
-  const message = "Halo Sossilver, saya tertarik dengan produk Anda."; // GANTI PESAN OTOMATIS
+  const message = "Halo SoS Silver, saya tertarik dengan produk Anda."; // GANTI PESAN OTOMATIS
   // -------------------------------------
 
   const waUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
