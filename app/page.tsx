@@ -221,55 +221,94 @@ export default function Homepage() {
         </section>
 
         {/* --- Fitur / Keunggulan --- */}
-        <section id="fitur" className="bg-slate-50 py-24">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
-                Mengapa Memilih SoS Silver?
-              </h2>
-              <p className="mt-4 text-lg text-gray-600">
-                Kami memberikan jaminan terbaik untuk investasi perak Anda.
-              </p>
+        <section id="fitur" className="bg-white py-24">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* --- Kolom 1: Video Lokal (Diubah untuk Portrait) --- */}
+            {/* DIUBAH: Hapus aspect-video, tambahkan max-w-sm dan mx-auto */}
+            <div className="block lg:block rounded-lg shadow-xl overflow-hidden max-w-sm mx-auto">
+              {" "}
+              {/* Batasi lebar */}
+              <video
+                className="w-full h-auto opacity-80" // Tinggi menyesuaikan rasio
+                src="/sossilver.mp4" // <-- GANTI NAMA FILE INI
+                autoPlay // Putar otomatis
+                muted // Harus di-mute agar autoplay berfungsi di banyak browser
+                loop // Ulangi video
+                playsInline // Penting untuk autoplay di iOS
+                // controls // Hapus komentar ini jika ingin menampilkan kontrol video
+              >
+                Browser Anda tidak mendukung tag video. {/* Fallback text */}
+              </video>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Fitur 1 */}
-              <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
-                <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-indigo-600 mb-4">
-                  <Award className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                  Kemurnian 999.9
-                </h3>
-                <p className="text-gray-600">
-                  Setiap produk SoS Silver memiliki kadar kemurnian perak 999.9,
-                  standar investasi internasional.
+
+            {/* --- Kolom 2: Teks Fitur --- */}
+            <div>
+              <div className="text-left mb-16">
+                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                  KEUNGGULAN KAMI
+                </p>
+                <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mt-2">
+                  Mengapa Memilih SoS Silver?
+                </h2>
+                <p className="mt-4 text-lg text-slate-600">
+                  SoS Silver bersertifikat resmi dan terjamin keasliannya,
+                  berpengaruh terhadap investasi jangka panjang Anda.
                 </p>
               </div>
-              {/* Fitur 2 */}
-              <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
-                <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-indigo-600 mb-4">
-                  <ShieldCheck className="h-6 w-6" />
+
+              {/* Layout List Fitur (Tema Terang) */}
+              <div className="space-y-10">
+                {/* Fitur 1 */}
+                <div className="flex items-start gap-6">
+                  <div className="shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 text-gray-600">
+                    <Award className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                      {" "}
+                      {/* Ukuran font diperkecil */}
+                      Jaminan Keaslian & Kemurnian
+                    </h3>
+                    <p className="text-slate-600">
+                      Setiap produk perak yang kami tawarkan dilengkapi
+                      sertifikat resmi, dan menjamin kemurnian 999.9.
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                  Keaslian Terverifikasi
-                </h3>
-                <p className="text-gray-600">
-                  Dilengkapi dengan kode unik yang dapat Anda verifikasi
-                  keasliannya kapan saja melalui website kami.
-                </p>
-              </div>
-              {/* Fitur 3 */}
-              <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
-                <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-indigo-600 mb-4">
-                  <Package className="h-6 w-6" />
+                {/* Fitur 2 */}
+                <div className="flex items-start gap-6">
+                  <div className="shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 text-gray-600">
+                    <ShieldCheck className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                      {" "}
+                      {/* Ukuran font diperkecil */}
+                      Keaslian Terverifikasi
+                    </h3>
+                    <p className="text-slate-600">
+                      Dilengkapi dengan kode unik yang dapat Anda verifikasi
+                      keasliannya kapan saja melalui website kami.
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                  Desain Eksklusif
-                </h3>
-                <p className="text-gray-600">
-                  Produk kami hadir dalam kemasan yang aman, terlindungi, dan
-                  desain yang elegan untuk koleksi Anda.
-                </p>
+                {/* Fitur 3 */}
+                <div className="flex items-start gap-6">
+                  <div className="shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 text-gray-600">
+                    <Package className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                      {" "}
+                      {/* Ukuran font diperkecil */}
+                      Desain Eksklusif & Aman
+                    </h3>
+                    <p className="text-slate-600">
+                      Produk kami hadir dalam kemasan yang aman, terlindungi,
+                      dan desain yang elegan untuk koleksi Anda.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -311,7 +350,7 @@ export default function Homepage() {
                   <div className="p-6 bg-gray-50 border-t border-gray-100">
                     <Link
                       href="#"
-                      className="inline-flex items-center font-medium text-indigo-600 hover:text-indigo-800"
+                      className="inline-flex items-center font-medium text-gray-600 hover:text-indigo-800"
                     >
                       Lihat Detail <ChevronRight className="ml-1 h-4 w-4" />
                     </Link>

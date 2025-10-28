@@ -16,6 +16,12 @@ const nextConfig = {
         hostname: 'www.minigold.co.id',
         port: '',
         pathname: '/**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'minigoldindonesia.sdgm.co.id',
+        port: '',
+        pathname: '/**'
       }
       // Anda mungkin perlu menambahkan domain lain di sini
       // jika 'product.gambarUrl' Anda berasal dari domain eksternal lain
