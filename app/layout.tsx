@@ -1,22 +1,62 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter } from "next/font/google"; // Menggunakan font Inter
 import Link from "next/link"; // <-- Diperlukan untuk WhatsAppBubble
 import "./globals.css";
 
-// Setup font
-const inter = Inter({ subsets: ["latin"] });
+// Setup font Inter dengan variabel CSS
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter", // Definisikan variabel CSS
+});
 
-// --- Perbaikan Metadata (Judul Tab) ---
+// --- KONFIGURASI METADATA (TERMASUK OG TAGS) ---
 export const metadata: Metadata = {
-  title: "Sossilver - Investasi Perak Murni Terjamin",
+  // Metadata Dasar (Judul dan Deskripsi)
+  title: {
+    default: "Sossilver - Investasi Perak Murni Terjamin", // Judul default
+    template: "%s | Sossilver", // Template judul untuk halaman lain
+  },
   description:
     "Temukan kemurnian perak 999.9 bersertifikat dari Sossilver. Pilihan terpercaya untuk melindungi nilai aset Anda.",
-  // Next.js akan otomatis mencari 'favicon.ico' di /app
+
+  // --- Metadata Open Graph (Untuk WhatsApp, Facebook, dll.) ---
+  openGraph: {
+    title: "Sossilver - Investasi Perak Murni Terjamin", // Judul di preview
+    description:
+      "Temukan kemurnian perak 999.9 bersertifikat dari Sossilver. Pilihan terpercaya.", // Deskripsi di preview
+    url: "https://sossilver.co.id", // GANTI DENGAN URL ASLI ANDA
+    siteName: "Sossilver",
+    images: [
+      {
+        url: "/og-image.png", // <-- PASTIKAN GAMBAR INI ADA DI /public
+        width: 1200, // Lebar gambar (rekomendasi)
+        height: 630, // Tinggi gambar (rekomendasi)
+        alt: "Sossilver Produk Perak Batangan",
+      },
+    ],
+    locale: "id_ID", // Bahasa Indonesia
+    type: "website",
+  },
+
+  // --- (Opsional) Metadata untuk Twitter Card ---
+  twitter: {
+    card: "summary_large_image",
+    title: "Sossilver - Investasi Perak Murni Terjamin",
+    description:
+      "Investasi perak murni 999.9 bersertifikat dan terjamin keasliannya.",
+    images: ["/og-image.png"], // Gunakan gambar yang sama
+    // creator: '@UsernameTwitterAnda', // Jika punya
+  },
+
+  // --- (Opsional) Ikon dan Manifest ---
+  // icons: { /* ...konfigurasi ikon... */ },
+  // manifest: '/site.webmanifest',
 };
+// --------------------------------------------------
 
 /**
  * Komponen Tombol WhatsApp Mengambang
- * (Kode yang Anda pilih, sekarang ada di sini)
+ * (DIUBAH: Definisi dipindahkan ke luar RootLayout)
  */
 function WhatsAppBubble() {
   // --- GANTI NOMOR DAN PESAN DI SINI ---
@@ -44,16 +84,20 @@ function WhatsAppBubble() {
   );
 }
 
+// Komponen Root Layout
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} antialiased`}>
+    // Menggunakan variabel font dan lang="id"
+    <html lang="id">
+      <body className={`${inter.variable} font-sans antialiased`}>
+        {" "}
+        {/* Gunakan font-sans */}
         {children}
-        <WhatsAppBubble /> {/* <-- Tombol WA dipanggil di sini */}
+        <WhatsAppBubble /> {/* Panggil komponen WA Bubble */}
       </body>
     </html>
   );
