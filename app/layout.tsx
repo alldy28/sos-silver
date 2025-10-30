@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
+
 // Setup font Inter dengan variabel CSS
 const inter = Inter({
   subsets: ["latin"],

@@ -52,3 +52,16 @@ model PriceImage {
   id       String @id @default("current_price_list")
   imageUrl String // URL lengkap dari Imgur/penyimpanan lain
 }
+
+
+model PromoSlide {
+  id             String  @id @default(cuid())
+  imageUrl       String  // URL gambar untuk slide ini
+  destinationUrl String? // URL tujuan jika slide diklik (opsional)
+  order          Int     // Urutan slide (misal: 1, 2, 3)
+  isActive       Boolean @default(true) // Untuk menonaktifkan slide tanpa menghapus
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([order]) // Index untuk sorting
+}

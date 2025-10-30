@@ -9,6 +9,16 @@ import {
   Award,
 } from "lucide-react";
 
+
+
+import "slick-carousel/slick/slick.css"; 
+import "slick-carousel/slick/slick-theme.css";
+
+
+
+import { db } from '@/lib/db';
+import { PromoPopup } from '@/app/dashboard/promo/_components/PromoPopup'; // Impor komponen popup
+
 // --- Data Mockup untuk Produk Unggulan ---
 // Nanti Anda bisa mengambil ini dari database jika mau
 const featuredProducts = [
@@ -156,10 +166,25 @@ function SiteFooter() {
   );
 }
 
+
+
+
 /**
  * Halaman Utama (Homepage)
  */
-export default function Homepage() {
+export default async function Homepage() {
+
+  let promoSlides: { id: string; createdAt: Date; imageUrl: string; destinationUrl: string | null; order: number; isActive: boolean; updatedAt: Date; }[] = []; // Default array kosong
+  try {
+    promoSlides = await db.promoSlide.findMany({
+      where: { isActive: true }, // Hanya ambil yang aktif
+      orderBy: { order: 'asc' }, // Urutkan berdasarkan order
+    });
+  } catch (error) {
+    console.error("Gagal mengambil data slide promo (homepage):", error);
+  }
+
+
   return (
     <div className="bg-white text-slate-800">
       <SiteHeader />
@@ -339,7 +364,7 @@ export default function Homepage() {
                       objectFit="cover"
                     />
                   </div>
-                  <div className="p-6 bg-white flex-grow">
+                  <div className="p-6 bg-white grow">
                     <h3 className="text-xl font-semibold text-slate-900 mb-2">
                       {product.nama}
                     </h3>
@@ -363,6 +388,8 @@ export default function Homepage() {
       </main>
 
       <SiteFooter />
+
+      <PromoPopup promoSlides={promoSlides} />
     </div>
   );
 }
