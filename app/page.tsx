@@ -27,28 +27,28 @@ const featuredProducts = [
     nama: "SoS Silver Bar 100 gr",
     gramasi: 100,
     fineness: 999.9,
-    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/sos.png",
+    gambarUrl: "/images/products/sos-100gr.png",
   },
   {
     id: "1",
     nama: "SoS Silver Bar 50 gr",
     gramasi: 50,
     fineness: 999.9,
-    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/50-min.png",
+    gambarUrl: "/images/products/sos-50gr.png",
   },
   {
     id: "3",
     nama: "SoS Silver Bar 250 gr",
     gramasi: 250,
     fineness: 999.9,
-    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/250-gr-min.png",
+    gambarUrl: "/images/products/sos-250gr.png",
   },
   {
     id: "4",
     nama: "SoS Silver Bar 500 gr",
     gramasi: 500,
     fineness: 999.9,
-    gambarUrl: "https://www.minigold.co.id/wp-content/uploads/2025/10/500-gr-min.png",
+    gambarUrl: "/images/products/sos-500gr.png",
   },
 ];
 

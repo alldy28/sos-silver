@@ -25,6 +25,7 @@ model SossilverProduct {
 
   // Relasi: Satu produk punya BANYAK kode
   codes           GeneratedCode[]
+  invoiceItems    InvoiceItem[]
 }
 
 // Model untuk Kode Unik
@@ -42,9 +43,16 @@ model GeneratedCode {
 
 
 model User {
-  id       String @id @default(cuid())
-  email    String @unique
-  password String // Kita akan simpan password yang sudah di-hash
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+  
+  // --- INI PERBAIKANNYA (Menambahkan relasi lawan ke Invoice) ---
+  invoices    Invoice[]
 }
 
 
@@ -64,4 +72,30 @@ model PromoSlide {
   updatedAt      DateTime @updatedAt
 
   @@index([order]) // Index untuk sorting
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique
+  customerName    String
+  customerPhone   String?
+  customerAddress String?
+  totalAmount     Int
+  shippingFee     Int           @default(0)
+  status          String        @default("UNPAID")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  createdById     String
+  createdBy       User          @relation(fields: [createdById], references: [id])
+  items           InvoiceItem[]
+}
+
+model InvoiceItem {
+  id              String @id @default(cuid())
+  invoiceId       String
+  invoice         Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId       String
+  product         SossilverProduct @relation(fields: [productId], references: [id])
+  quantity        Int
+  priceAtTime     Int
 }
