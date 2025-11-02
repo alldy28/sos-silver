@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { auth } from '@/auth'; // Impor auth untuk mendapatkan ID admin
 import { revalidatePath } from 'next/cache';
+import { put } from '@vercel/blob'
 
 // Tipe data untuk item di keranjang (dari sisi klien)
 export interface CartItemInput {
@@ -17,6 +18,13 @@ export interface CustomerInput {
   customerPhone: string;
   customerAddress: string;
 }
+
+interface CustomerData {
+  customerName: string
+  customerPhone: string
+  customerAddress: string
+}
+
 
 /**
  * Aksi untuk mencari produk berdasarkan nama
@@ -45,76 +53,170 @@ export async function searchProductsAction(query: string) {
 /**
  * Aksi untuk membuat Invoice baru
  */
-export async function createInvoiceAction(
-  customer: CustomerInput,
-  items: CartItemInput[],
+
+
+export async function createInvoiceAction (
+  customer: CustomerData,
+  itemsInput: CartItemInput[],
   shippingFee: number,
   totalAmount: number
 ) {
-  const session = await auth(); // Dapatkan sesi admin yang login
+  // 1. Dapatkan sesi user yang sedang login
+  const session = await auth()
   if (!session?.user?.id) {
-    return { success: false, message: 'Admin tidak terautentikasi.' };
+    return {
+      success: false,
+      message: 'Anda harus login untuk membuat invoice.'
+    }
   }
-  const adminId = session.user.id;
+  const userId = session.user.id
 
-  if (items.length === 0) {
-    return { success: false, message: 'Keranjang tidak boleh kosong.' };
-  }
-  if (!customer.customerName) {
-    return { success: false, message: 'Nama pelanggan wajib diisi.' };
-  }
+  // 2. Buat nomor invoice unik (contoh sederhana)
+  const invoiceNumber = `INV-${Date.now()}`
 
   try {
-    // Buat nomor invoice unik (Contoh: INV-20251031-A1B2)
-    const datePart = new Date()
-      .toISOString()
-      .slice(0, 10)
-      .replace(/-/g, '');
-    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const invoiceNumber = `INV-${datePart}-${randomPart}`;
+    const newInvoice = await db.invoice.create({
+      data: {
+        invoiceNumber,
+        totalAmount,
+        shippingFee,
+        // ...customer, // Sebar data pelanggan langsung ke model Invoice
+        customerName: customer.customerName,
+        customerPhone: customer.customerPhone,
+        customerAddress: customer.customerAddress,
+        createdById: userId, // Tautkan ke user yang membuat
+        items: {
+          create: itemsInput.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            priceAtTime: item.priceAtTime
+          }))
+        }
+      }
+    })
 
-    // Gunakan transaksi Prisma untuk memastikan semua data tersimpan
-    const newInvoice = await db.$transaction(async (prisma) => {
-      // 1. Buat data Invoice utama
-      const invoice = await prisma.invoice.create({
-        data: {
-          invoiceNumber,
-          customerName: customer.customerName,
-          customerPhone: customer.customerPhone || null,
-          customerAddress: customer.customerAddress || null,
-          shippingFee,
-          totalAmount,
-          status: 'UNPAID', // Default status
-          createdById: adminId,
-        },
-      });
-
-      // 2. Buat semua InvoiceItem
-      await prisma.invoiceItem.createMany({
-        data: items.map((item) => ({
-          invoiceId: invoice.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          priceAtTime: item.priceAtTime,
-        })),
-      });
-
-      return invoice;
-    });
-
-    revalidatePath('/dashboard/kasir');
-    revalidatePath('/dashboard/invoices'); // Nanti untuk halaman daftar invoice
+    // Revalidasi path agar halaman list ter-update
+    revalidatePath('/dashboard/invoice')
 
     return {
       success: true,
-      message: `Invoice ${newInvoice.invoiceNumber} berhasil dibuat.`,
-      invoiceId: newInvoice.id,
-    };
+      message: 'Invoice berhasil dibuat.',
+      invoiceId: newInvoice.id
+    }
   } catch (error) {
-    console.error('Gagal membuat invoice:', error);
+    console.error('Gagal membuat invoice:', error)
+    return { success: false, message: 'Gagal membuat invoice.' }
+  }
+}
+
+/**
+ * [PERBAIKAN] Mengambil semua invoice
+ */
+export async function getInvoicesAction () {
+  try {
+    const invoices = await db.invoice.findMany({
+      // HAPUS 'include: { customer: true }' DARI SINI
+      // Kita tidak perlu include apa-apa karena data pelanggan sudah ada
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+    return invoices
+  } catch (error) {
+    console.error('Error fetching invoices:', error)
+    return []
+  }
+}
+
+/**
+ * [PERBAIKAN] Mengambil satu invoice berdasarkan ID
+ */
+export async function getInvoiceByIdAction (invoiceId: string) {
+  try {
+    const invoice = await db.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        // HAPUS 'customer: true'
+        items: {
+          // Relasi ini sudah benar
+          include: {
+            product: true
+          }
+        }
+      }
+    })
+    return invoice
+  } catch (error) {
+    console.error('Error fetching invoice by ID:', error)
+    return null
+  }
+}
+
+/**
+ * Mengubah status invoice (misal: PAID, CANCELLED)
+ */
+export async function updateInvoiceStatusAction (
+  invoiceId: string,
+  newStatus: 'PAID' | 'UNPAID' | 'CANCELLED'
+) {
+  try {
+    await db.invoice.update({
+      where: { id: invoiceId },
+      data: { status: newStatus } // Asumsi ada field 'status' di model Invoice
+    })
+
+    // Revalidasi path agar halaman detail dan list menampilkan data terbaru
+    revalidatePath('/dashboard/invoice')
+    revalidatePath(`/dashboard/invoice/${invoiceId}`)
+
+    return { success: true, message: 'Status invoice berhasil diperbarui.' }
+  } catch (error) {
+    console.error('Error updating invoice status:', error)
+    return { success: false, message: 'Gagal memperbarui status.' }
+  }
+}
+
+
+export async function uploadPaymentProofAction (
+  invoiceId: string,
+  formData: FormData
+) {
+  const file = formData.get('paymentProof') as File
+
+  if (!file || file.size === 0) {
+    return { success: false, message: 'File tidak ditemukan.' }
+  }
+
+  const fileExtension = file.name.split('.').pop()
+const uniqueFileName = `payment-proof-${invoiceId}-${Date.now()}.${fileExtension}`
+
+
+  try {
+    // 1. Upload file ke Vercel Blob
+    const blob = await put(uniqueFileName, file, {
+      access: 'public' // Jadikan file bisa diakses publik
+    })
+
+    // 2. Update database dengan URL file
+    await db.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        paymentProofUrl: blob.url, // <-- Ini membutuhkan 'paymentProofUrl' di schema Anda
+        status: 'PAID' // Otomatis ubah status jadi PAID setelah upload
+      }
+    })
+
+    // 3. Revalidasi path
+    revalidatePath(`/dashboard/invoice/${invoiceId}`)
+    revalidatePath('/dashboard/invoice')
+
     return {
-      success: false,
-      message: 'Terjadi kesalahan server saat membuat invoice.',
-    };
+      success: true,
+      message: 'Bukti bayar berhasil diupload.',
+      url: blob.url
+    }
+  } catch (error) {
+    console.error('Error uploading payment proof:', error)
+    return { success: false, message: 'Gagal mengupload file.' }
   }
 }

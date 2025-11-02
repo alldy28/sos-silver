@@ -29,6 +29,12 @@ const nextConfig = {
         port: '',
         pathname: '/**'
       },
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+        port: '',
+        pathname: '/**',
+      },
       // Anda mungkin perlu menambahkan domain lain di sini
       // jika 'product.gambarUrl' Anda berasal dari domain eksternal lain
     ]
