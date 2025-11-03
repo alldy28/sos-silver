@@ -104,12 +104,12 @@ export default async function DashboardPage() {
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
             Aksi Cepat
           </h2>
-          <QuickActionCard
+          {/* <QuickActionCard
             title="Tambah Produk Baru"
             href="/dashboard/products/create" // Arahkan ke halaman create
             icon={<PlusCircle className="w-7 h-7 text-white" />}
             iconBgColor="bg-blue-500"
-          />
+          /> */}
           <QuickActionCard
             title="Generate Kode Verifikasi"
             href="/dashboard/codes" // Arahkan ke halaman generator
