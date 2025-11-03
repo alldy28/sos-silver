@@ -92,7 +92,6 @@ export async function createInvoiceAction (
             productId: item.productId,
             quantity: item.quantity,
             priceAtTime: item.priceAtTime,
-            gramasi: item.gramasi
           }))
         }
       }
