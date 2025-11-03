@@ -4,12 +4,14 @@ import { db } from '@/lib/db';
 import { auth } from '@/auth'; // Impor auth untuk mendapatkan ID admin
 import { revalidatePath } from 'next/cache';
 import { put } from '@vercel/blob'
+import { it } from 'node:test';
 
 // Tipe data untuk item di keranjang (dari sisi klien)
 export interface CartItemInput {
   productId: string;
   quantity: number;
-  priceAtTime: number; // Harga satuan produk
+  priceAtTime: number;
+  gramasi: number; // Harga satuan produk
 }
 
 // Tipe data untuk info pelanggan
@@ -89,7 +91,8 @@ export async function createInvoiceAction (
           create: itemsInput.map(item => ({
             productId: item.productId,
             quantity: item.quantity,
-            priceAtTime: item.priceAtTime
+            priceAtTime: item.priceAtTime,
+            gramasi: item.gramasi
           }))
         }
       }

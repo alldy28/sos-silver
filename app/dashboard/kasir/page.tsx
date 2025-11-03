@@ -93,7 +93,8 @@ export default function KasirPage() {
           name: product.nama,
           gambarUrl: product.gambarUrl,
           quantity: 1,
-          priceAtTime: product.hargaJual, // Ambil harga jual saat ini
+          priceAtTime: product.hargaJual,
+          gramasi: product.gramasi // Ambil harga jual saat ini
         },
       ]);
     }
@@ -160,7 +161,8 @@ export default function KasirPage() {
     const itemsInput: CartItemInput[] = cart.map(item => ({
       productId: item.productId,
       quantity: item.quantity,
-      priceAtTime: item.priceAtTime
+      priceAtTime: item.priceAtTime,
+      gramasi: item.gramasi
     }));
 
     const result = await createInvoiceAction(
@@ -203,8 +205,10 @@ export default function KasirPage() {
               placeholder="Ketik nama produk (min. 2 huruf)..."
               className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
             />
-            {isSearching && <Loader2 className="absolute right-3 top-2.5 w-5 h-5 animate-spin text-gray-400" />}
-            
+            {isSearching && (
+              <Loader2 className="absolute right-3 top-2.5 w-5 h-5 animate-spin text-gray-400" />
+            )}
+
             {/* Hasil Pencarian */}
             {searchResults.length > 0 && (
               <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -218,7 +222,11 @@ export default function KasirPage() {
                     <div className="flex-1">
                       <p className="font-medium">{product.nama}</p>
                       <p className="text-sm text-gray-500">
-                        Stok: ... | Harga: {product.hargaJual.toLocaleString('id-ID')}
+                        {product.gramasi} gr
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Stok: ... | Harga:{" "}
+                        {product.hargaJual.toLocaleString("id-ID")}
                       </p>
                     </div>
                   </li>
@@ -247,8 +255,9 @@ export default function KasirPage() {
                 >
                   <div className="flex-1 flex flex-col">
                     <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-gray-500">{item.gramasi} gr</p>
                     <p className="text-sm text-indigo-500">
-                      Rp {item.priceAtTime.toLocaleString('id-ID')}
+                      Rp {item.priceAtTime.toLocaleString("id-ID")}
                     </p>
                   </div>
                   {/* Kuantitas */}
@@ -259,7 +268,11 @@ export default function KasirPage() {
                       }
                       className="p-1 rounded-full bg-gray-200 dark:bg-gray-600 hover:bg-gray-300"
                     >
-                      {item.quantity === 1 ? <X className="w-4 h-4 text-red-500" /> : <Minus className="w-4 h-4" />}
+                      {item.quantity === 1 ? (
+                        <X className="w-4 h-4 text-red-500" />
+                      ) : (
+                        <Minus className="w-4 h-4" />
+                      )}
                     </button>
                     <span className="w-10 text-center font-medium">
                       {item.quantity}
@@ -275,7 +288,8 @@ export default function KasirPage() {
                   </div>
                   {/* Subtotal Item */}
                   <div className="w-28 text-right font-semibold">
-                    Rp {(item.priceAtTime * item.quantity).toLocaleString('id-ID')}
+                    Rp{" "}
+                    {(item.priceAtTime * item.quantity).toLocaleString("id-ID")}
                   </div>
                 </div>
               ))
@@ -293,7 +307,9 @@ export default function KasirPage() {
             Data Pelanggan
           </h2>
           <div>
-            <label htmlFor="customerName" className="text-sm font-medium">Nama Pelanggan*</label>
+            <label htmlFor="customerName" className="text-sm font-medium">
+              Nama Pelanggan*
+            </label>
             <input
               type="text"
               id="customerName"
@@ -305,7 +321,9 @@ export default function KasirPage() {
             />
           </div>
           <div>
-            <label htmlFor="customerPhone" className="text-sm font-medium">No. Telepon</label>
+            <label htmlFor="customerPhone" className="text-sm font-medium">
+              No. Telepon
+            </label>
             <input
               type="text"
               id="customerPhone"
@@ -316,7 +334,9 @@ export default function KasirPage() {
             />
           </div>
           <div>
-            <label htmlFor="customerAddress" className="text-sm font-medium">Alamat</label>
+            <label htmlFor="customerAddress" className="text-sm font-medium">
+              Alamat
+            </label>
             <textarea
               id="customerAddress"
               name="customerAddress"
@@ -336,22 +356,29 @@ export default function KasirPage() {
           </h2>
           <div className="flex justify-between text-gray-600 dark:text-gray-300">
             <span>Subtotal</span>
-            <span>Rp {subTotal.toLocaleString('id-ID')}</span>
+            <span>Rp {subTotal.toLocaleString("id-ID")}</span>
           </div>
           <div className="flex justify-between items-center">
-            <label htmlFor="shippingFee" className="text-gray-600 dark:text-gray-300">Biaya Kirim</label>
+            <label
+              htmlFor="shippingFee"
+              className="text-gray-600 dark:text-gray-300"
+            >
+              Biaya Kirim
+            </label>
             <input
               type="number"
               id="shippingFee"
               value={shippingFee}
-              onChange={(e) => setShippingFee(parseInt(e.target.value, 10) || 0)}
+              onChange={(e) =>
+                setShippingFee(parseInt(e.target.value, 10) || 0)
+              }
               className="w-32 px-2 py-1 border rounded-lg text-right dark:bg-gray-700 dark:border-gray-600"
             />
           </div>
           <div className="border-t dark:border-gray-700 pt-3 mt-3">
             <div className="flex justify-between text-xl font-bold">
               <span>Total</span>
-              <span>Rp {totalAmount.toLocaleString('id-ID')}</span>
+              <span>Rp {totalAmount.toLocaleString("id-ID")}</span>
             </div>
           </div>
         </div>
@@ -367,7 +394,7 @@ export default function KasirPage() {
           ) : (
             <ShoppingCart className="w-6 h-6 mr-2" />
           )}
-          {isSubmitting ? 'Memproses...' : 'Buat Invoice (UNPAID)'}
+          {isSubmitting ? "Memproses..." : "Buat Invoice (UNPAID)"}
         </button>
       </div>
     </div>
