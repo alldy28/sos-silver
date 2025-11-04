@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   ShieldCheck,
   // Gem,
@@ -7,7 +8,15 @@ import {
   ArrowRight,
   ChevronRight,
   Award,
+  MenuIcon,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 
 
@@ -24,32 +33,39 @@ import { PromoPopup } from '@/app/dashboard/promo/_components/PromoPopup'; // Im
 const featuredProducts = [
   {
     id: "2",
-    nama: "SoS Silver Bar 100 gr",
+    nama: "SoS Silver 100 gr",
     gramasi: 100,
     fineness: 999.9,
     gambarUrl: "/images/products/sos-100gr.png",
   },
   {
     id: "1",
-    nama: "SoS Silver Bar 50 gr",
+    nama: "SoS Silver 50 gr",
     gramasi: 50,
     fineness: 999.9,
     gambarUrl: "/images/products/sos-50gr.png",
   },
   {
     id: "3",
-    nama: "SoS Silver Bar 250 gr",
+    nama: "SoS Silver 250 gr",
     gramasi: 250,
     fineness: 999.9,
     gambarUrl: "/images/products/sos-250gr.png",
   },
   {
     id: "4",
-    nama: "SoS Silver Bar 500 gr",
+    nama: "SoS Silver Ba 500 gr",
     gramasi: 500,
     fineness: 999.9,
     gambarUrl: "/images/products/sos-500gr.png",
   },
+];
+
+
+const navItems = [
+  { href: "#produk", label: "Produk" },
+  { href: "#fitur", label: "Keunggulan" },
+  { href: "/verif", label: "Verifikasi" },
 ];
 
 /**
@@ -59,50 +75,91 @@ function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-sm border-b border-gray-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/*
+          Layout 3-kolom:
+          - (Kiri) Slot 1: flex-1, md:hidden -> Untuk Tombol Menu Mobile
+          - (Tengah) Slot 2: flex-1, justify-center -> Untuk Logo
+          - (Kanan) Slot 3: flex-1, justify-end -> Untuk Navigasi Desktop
+          Ini secara otomatis akan menengahkan logo di mobile
+        */}
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/logosos-baru.png" // Mengambil dari /public/logosos-baru.png
-              alt="Sossilver Logo"
-              width={140} // Atur lebar asli gambar (atau rasio)
-              height={40} // Atur tinggi asli gambar (atau rasio)
-              className="h-10 w-auto" // Tinggi 40px, lebar otomatis
-              priority // Membantu LCP
-            />
-            <div className="text-lg font-semibold text-slate-800"> SoS Silver </div>
-          </Link>
+          {/* --- SLOT KIRI: Tombol Menu Mobile --- */}
+          <div className="flex-1 md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MenuIcon className="h-6 w-6" />
+                  <span className="sr-only">Buka menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <SheetHeader>
+                  <SheetTitle className="sr-only">Navigasi</SheetTitle>
+                </SheetHeader>
+                {/* Navigasi Versi Mobile (di dalam Sidebar) */}
+                <nav className="flex flex-col gap-6 mt-8">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="text-lg font-medium text-gray-700 hover:text-gray-900"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                  {/* Tombol Login Admin di Mobile */}
+                  {/* <Link
+                    href="/dashboard"
+                    className="inline-flex items-center justify-center px-5 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+                  >
+                    Login Admin
+                  </Link> */}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
 
-          {/* Navigasi */}
-          <nav className="hidden md:flex md:gap-8">
-            <Link
-              href="#produk"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              Produk
+          {/* --- SLOT TENGAH: Logo (Center di Mobile) --- */}
+          <div className="flex-1 flex justify-center md:justify-start md:flex-none">
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logosos-baru.png"
+                alt="Sossilver Logo"
+                width={140}
+                height={40}
+                className="h-10 w-auto"
+                priority
+              />
+              <div className="text-lg font-semibold text-slate-800">
+                SoS Silver
+              </div>
             </Link>
-            <Link
-              href="#fitur"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              Keunggulan
-            </Link>
-            <Link
-              href="/verif"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              Verifikasi
-            </Link>
-          </nav>
+          </div>
 
-          {/* Tombol Aksi */}
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard" // <-- Mengarah ke dasbor login Anda
-              className="inline-flex items-center justify-center px-5 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-slate-800 hover:bg-slate-700 transition-colors"
-            >
-              Login Admin
-            </Link>
+          {/* --- SLOT KANAN: Navigasi Desktop & Aksi --- */}
+          <div className="flex-1 hidden md:flex justify-end items-center gap-8">
+            {/* Navigasi Desktop */}
+            <nav className="flex gap-8">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            {/* Tombol Aksi (Login Admin) */}
+            {/* <div className="flex items-center">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center px-5 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-slate-800 hover:bg-slate-700 transition-colors"
+              >
+                Login Admin
+              </Link>
+            </div> */}
           </div>
         </div>
       </div>
