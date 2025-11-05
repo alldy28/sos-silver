@@ -128,6 +128,9 @@ export default async function InvoiceDetailPage({
                   PRODUCT
                 </th>
                 <th className="text-center py-3 px-2 text-sm font-bold text-gray-800">
+                  GRAMASI
+                </th>
+                <th className="text-center py-3 px-2 text-sm font-bold text-gray-800">
                   QUANTITY
                 </th>
                 <th className="text-right py-3 px-2 text-sm font-bold text-gray-800">
