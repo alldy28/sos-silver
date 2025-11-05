@@ -35,7 +35,7 @@ const navLinks = [
     label: "Invoices",
   },
   {
-    href: "/dashboard/product",
+    href: "/dashboard/products",
     icon: PackageIcon,
     label: "Produk",
   },
