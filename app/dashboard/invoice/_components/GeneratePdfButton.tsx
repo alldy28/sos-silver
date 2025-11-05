@@ -9,11 +9,8 @@ import html2canvas from "html2canvas";
 export default function GeneratePdfButton() {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // ID elemen yang akan dicetak
-  // Kita akan definisikan <div id="invoice-pdf-content"> di halaman detail
   const contentElementId = "invoice-pdf-content";
 
-  // Ambil ID invoice dari URL untuk nama file
   const getInvoiceIdForFilename = () => {
     if (typeof window === "undefined") return "invoice";
     const pathParts = window.location.pathname.split("/");
@@ -30,66 +27,43 @@ export default function GeneratePdfButton() {
     setIsGenerating(true);
 
     try {
-      // 1. Gunakan html2canvas untuk "menggambar" div
+      // 1. Capture element dengan html2canvas
       const canvas = await html2canvas(input, {
-        scale: 2, // Meningkatkan resolusi gambar hasil canvas
-        useCORS: true, // Izinkan gambar eksternal (jika ada)
+        scale: 3, // High quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
       });
 
-      // 2. Dapatkan data gambar dari canvas
+      // 2. Get image data
       const imgData = canvas.toDataURL("image/png");
 
-      // 3. Konfigurasi PDF (A4 = 210mm x 297mm)
-      const pdfWidth = 210;
-      const pageMargin = 10; // Margin 10mm di kiri dan kanan
-      const contentWidth = pdfWidth - pageMargin * 2;
+      // 3. PDF Configuration (A4 size)
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
 
-      // Hitung rasio untuk fit ke lebar konten
-      const ratio = imgWidth / contentWidth;
-      const calculatedHeight = imgHeight / ratio;
+      // Calculate dimensions to fit A4
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
 
-      // 4. Buat dokumen jsPDF
-      // 'p' = portrait, 'mm' = millimeters, 'a4' = A4
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+      // Center the image
+      const x = (pdfWidth - imgScaledWidth) / 2;
+      const y = 0;
 
-      let heightLeft = calculatedHeight;
-      let position = 0; // Posisi vertikal untuk gambar
+      // 4. Add image to PDF
+      pdf.addImage(imgData, "PNG", x, y, imgScaledWidth, imgScaledHeight);
 
-      // 5. Tambahkan halaman pertama (dengan margin)
-      pdf.addImage(
-        imgData,
-        "PNG",
-        pageMargin,
-        position + pageMargin,
-        contentWidth,
-        calculatedHeight
-      );
-      heightLeft -= pdfHeight - pageMargin * 2;
-
-      // 6. Jika konten lebih panjang dari 1 halaman, tambahkan halaman baru
-      while (heightLeft > 0) {
-        position = heightLeft - calculatedHeight; // Posisikan gambar sisanya
-        pdf.addPage();
-        pdf.addImage(
-          imgData,
-          "PNG",
-          pageMargin,
-          position,
-          contentWidth,
-          calculatedHeight
-        );
-        heightLeft -= pdfHeight;
-      }
-
-      // 7. Simpan file PDF
-      pdf.save(`invoice-${getInvoiceIdForFilename()}.pdf`);
+      // 5. Save PDF
+      const invoiceId = getInvoiceIdForFilename();
+      pdf.save(`invoice-${invoiceId}.pdf`);
     } catch (err) {
       console.error("Error generating PDF:", err);
-      alert("Gagal membuat PDF.");
+      alert("Gagal membuat PDF. Silakan coba lagi.");
     } finally {
       setIsGenerating(false);
     }
@@ -99,14 +73,19 @@ export default function GeneratePdfButton() {
     <button
       onClick={handleGeneratePdf}
       disabled={isGenerating}
-      className="flex items-center px-4 py-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
     >
       {isGenerating ? (
-        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+        <>
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span>Membuat PDF...</span>
+        </>
       ) : (
-        <Printer className="w-4 h-4 mr-2" />
+        <>
+          <Printer className="w-5 h-5" />
+          <span>Cetak PDF</span>
+        </>
       )}
-      {isGenerating ? "Membuat PDF..." : "Cetak PDF"}
     </button>
   );
 }

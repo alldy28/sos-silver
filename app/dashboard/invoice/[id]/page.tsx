@@ -2,71 +2,28 @@
 
 import { getInvoiceByIdAction } from "../../../../actions/invoice-actions";
 import { notFound } from "next/navigation";
-import type { InvoiceItem, SossilverProduct } from "@prisma/client";
-import {
-  User,
-  Phone,
-  MapPin,
-  Package,
-  DollarSign,
-} from "lucide-react";
 import UpdateStatusButton from "../_components/UpdateStatusButton";
 import GeneratePdfButton from "../_components/GeneratePdfButton";
 import UploadPaymentProof from "../_components/UploadPaymentProof";
+import Image from "next/image";
 
-// --- Fungsi Helper (Bisa dipindah ke file utils jika mau) ---
-
-type InvoiceItemWithProduct = InvoiceItem & {
-  product: SossilverProduct;
-};
-
+// --- Helper Functions ---
 const formatDate = (date: Date) =>
-  new Date(date).toLocaleString("id-ID", {
-    dateStyle: "full",
-    timeStyle: "short",
+  new Date(date).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   });
 
 const formatCurrency = (amount: number) =>
-  `Rp ${amount.toLocaleString("id-ID")}`;
-
-const formatStatus = (status: string) => {
-  switch (status) {
-    case "PAID":
-      return (
-        <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-          LUNAS
-        </span>
-      );
-    case "UNPAID":
-      return (
-        <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full">
-          BELUM LUNAS
-        </span>
-      );
-    case "CANCELLED":
-      return (
-        <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
-          BATAL
-        </span>
-      );
-    default:
-      return (
-        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
-          {status}
-        </span>
-      );
-  }
-};
-// --- Batas Fungsi Helper ---
+  `Rp${amount.toLocaleString("id-ID")}`;
 
 export default async function InvoiceDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-
-    const awaitedParams = await params;
-
+  const awaitedParams = await params;
   const invoice = await getInvoiceByIdAction(awaitedParams.id);
 
   if (!invoice) {
@@ -75,127 +32,164 @@ export default async function InvoiceDetailPage({
 
   // Hitung subtotal dari item
   const subTotal = invoice.items.reduce(
-    (acc: number, item: InvoiceItemWithProduct) =>
-      acc + item.priceAtTime * item.quantity,
+    (acc, item) => acc + item.priceAtTime * item.quantity,
     0
   );
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
-      {/* =========================================================
-        KONTEN YANG AKAN DI-PRINT SEBAGAI PDF DIMULAI DARI SINI
-        =========================================================
-      */}
+      {/* PDF Content Start */}
       <div
         id="invoice-pdf-content"
-        className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-lg shadow-lg"
+        className="bg-white p-8 rounded-lg shadow-lg"
+        style={{ fontFamily: "Arial, sans-serif" }}
       >
-        {/* Header Invoice */}
-        <div className="flex justify-between items-start mb-6">
+        {/* Header with Logo and Company Info */}
+        <div className="flex justify-between items-start mb-8">
+          <div className="flex items-start gap-4">
+            {/* Logo */}
+            <div className="w-24 h-24 flex items-center justify-center">
+              <Image
+                src="/logosos-baru.png"
+                width={100}
+                height={100}
+                alt="Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* Company Info */}
+            <div className="text-sm leading-relaxed">
+              <p className="font-bold text-gray-800">SoS Silver</p>
+              <p className="text-gray-600">
+                Ruko Colony Blok DE 1 No 37 Perumahan Metland
+              </p>
+              <p className="text-gray-600">
+                Cileungsi-setu Serang KM 02, Cipenjo, Cileungsi
+              </p>
+              <p className="text-gray-600">Kabupaten Bogor, Jawa Barat 16820</p>
+            </div>
+          </div>
+
+          {/* Invoice Title */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Invoice #{invoice.invoiceNumber.substring(0, 8)}...
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400">
-              Dibuat pada: {formatDate(invoice.createdAt)}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="mb-2">{formatStatus(invoice.status)}</div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              ID: {invoice.id}
-            </p>
+            <h1 className="text-4xl font-bold text-blue-500 mb-2">INVOICE</h1>
           </div>
         </div>
 
-        {/* Info Pelanggan */}
-        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700 mb-6">
-          <h2 className="text-xl font-semibold mb-3 flex items-center dark:text-white">
-            <User className="w-5 h-5 mr-2" />
-            Pelanggan
-          </h2>
-          <div className="space-y-2 text-sm">
-            <p className="font-medium text-base dark:text-white">
-              {invoice.customerName}
+        {/* Shipping Address and Invoice Info */}
+        <div className="flex justify-between mb-8">
+          {/* Shipping Address */}
+          <div className="text-sm">
+            <p className="font-bold text-gray-800 mb-2">Shipping Address:</p>
+            <p className="text-gray-600">{invoice.customerName}</p>
+            <p className="text-gray-600">
+              {invoice.customerAddress || "Alamat tidak tersedia"}
             </p>
-            <p className="flex items-center text-gray-600 dark:text-gray-300">
-              <Phone className="w-4 h-4 mr-2" />
-              {invoice.customerPhone || "Tidak ada no. telp"}
-            </p>
-            <p className="flex items-start text-gray-600 dark:text-gray-300">
-              <MapPin className="w-4 h-4 mr-2 mt-1 shrink-0" />
-              <span>{invoice.customerAddress || "Tidak ada alamat"}</span>
-            </p>
+            <p className="text-gray-600">{invoice.customerPhone || ""}</p>
+          </div>
+
+          {/* Invoice Info */}
+          <div className="text-sm text-right">
+            <div className="mb-1">
+              <span className="text-gray-600">Invoice Date: </span>
+              <span className="font-semibold">
+                {formatDate(invoice.createdAt)}
+              </span>
+            </div>
+            <div className="mb-1">
+              <span className="text-gray-600">Invoice No.: </span>
+              <span className="font-semibold">
+                {invoice.invoiceNumber.substring(0, 8)}
+              </span>
+            </div>
+            <div className="mb-1">
+              <span className="text-gray-600">Order No.: </span>
+              <span className="font-semibold">
+                {invoice.id.substring(0, 4)}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Order Date: </span>
+              <span className="font-semibold">
+                {formatDate(invoice.createdAt)}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Rincian Item */}
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700 mb-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center dark:text-white">
-            <Package className="w-5 h-5 mr-2" />
-            Rincian Item
-          </h2>
-          <div className="flow-root">
-            <ul
-              role="list"
-              className="divide-y divide-gray-200 dark:divide-gray-700"
-            >
-              {invoice.items.map((item: InvoiceItemWithProduct) => (
-                <li key={item.id} className="py-4 flex">
-                  <div className="flex-1">
-                    <p className="font-medium dark:text-white">
-                      {item.product.nama}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {item.quantity} x {formatCurrency(item.priceAtTime)}
-                    </p>
-                  </div>
-                  <div className="font-semibold dark:text-white">
+        {/* Items Table */}
+        <div className="mb-8">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-t-2 border-b-2 border-black">
+                <th className="text-left py-3 px-2 text-sm font-bold text-gray-800">
+                  S.NO
+                </th>
+                <th className="text-left py-3 px-2 text-sm font-bold text-gray-800">
+                  PRODUCT
+                </th>
+                <th className="text-center py-3 px-2 text-sm font-bold text-gray-800">
+                  QUANTITY
+                </th>
+                <th className="text-right py-3 px-2 text-sm font-bold text-gray-800">
+                  PRICE
+                </th>
+                <th className="text-right py-3 px-2 text-sm font-bold text-gray-800">
+                  TOTAL PRICE
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.items.map((item, index) => (
+                <tr key={item.id} className="border-b border-gray-200">
+                  <td className="py-3 px-2 text-sm text-gray-700">
+                    {index + 1}
+                  </td>
+                  <td className="py-3 px-2 text-sm text-gray-700">
+                    {item.product.nama}
+                  </td>
+                  <td className="py-3 px-2 text-sm text-center text-gray-700">
+                    {item.quantity}
+                  </td>
+                  <td className="py-3 px-2 text-sm text-right text-gray-700">
+                    {formatCurrency(item.priceAtTime)}
+                  </td>
+                  <td className="py-3 px-2 text-sm text-right text-gray-700">
                     {formatCurrency(item.quantity * item.priceAtTime)}
-                  </div>
-                </li>
+                  </td>
+                </tr>
               ))}
-            </ul>
-          </div>
+            </tbody>
+          </table>
         </div>
 
-        {/* Rangkuman Total */}
-        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm border dark:border-gray-700">
-          <h2 className="text-xl font-semibold mb-4 flex items-center dark:text-white">
-            <DollarSign className="w-5 h-5 mr-2" />
-            Rangkuman
-          </h2>
-          <div className="space-y-3">
-            <div className="flex justify-between text-gray-600 dark:text-gray-300">
-              <span>Subtotal</span>
-              <span>{formatCurrency(subTotal)}</span>
+        {/* Totals */}
+        <div className="flex justify-end mb-8">
+          <div className="w-72">
+            <div className="flex justify-between py-2 text-sm">
+              <span className="text-gray-700">Subtotal</span>
+              <span className="text-gray-700">{formatCurrency(subTotal)}</span>
             </div>
-            <div className="flex justify-between text-gray-600 dark:text-gray-300">
-              <span>Biaya Kirim</span>
-              <span>{formatCurrency(invoice.shippingFee)}</span>
-            </div>
-            <div className="border-t dark:border-gray-700 pt-3 mt-3">
-              <div className="flex justify-between text-xl font-bold dark:text-white">
-                <span>Total</span>
-                <span>{formatCurrency(invoice.totalAmount)}</span>
-              </div>
+            <div className="flex justify-between py-2 border-t border-b-2 border-black text-base font-bold">
+              <span className="text-gray-800">Total</span>
+              <span className="text-gray-800">
+                {formatCurrency(invoice.totalAmount)}
+              </span>
             </div>
           </div>
         </div>
       </div>
-      {/* =========================================================
-        BATAS AKHIR KONTEN PDF
-        =========================================================
-      */}
+      {/* PDF Content End */}
 
-      {/* --- Tombol Aksi (Hanya PDF) - DILUAR KONTEN PDF --- */}
+      {/* Action Buttons - Outside PDF */}
       <div className="mt-6 flex justify-end">
         <GeneratePdfButton />
       </div>
 
-      {/* --- Panel Aksi Admin - DILUAR KONTEN PDF --- */}
+      {/* Admin Panels - Outside PDF */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        {/* Panel 1: Ubah Status Manual */}
+        {/* Panel 1: Update Status */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-3 dark:text-white">
             Ubah Status Manual
@@ -206,7 +200,7 @@ export default async function InvoiceDetailPage({
           />
         </div>
 
-        {/* Panel 2: Upload Bukti Bayar */}
+        {/* Panel 2: Upload Payment Proof */}
         <UploadPaymentProof
           invoiceId={invoice.id}
           currentProofUrl={invoice.paymentProofUrl}
