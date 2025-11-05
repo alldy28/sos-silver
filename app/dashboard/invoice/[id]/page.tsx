@@ -49,10 +49,8 @@ export default async function InvoiceDetailPage({
           <div className="flex items-start gap-4">
             {/* Logo */}
             <div className="w-24 h-24 flex items-center justify-center">
-              <Image
+              <img
                 src="/logosos-baru.png"
-                width={100}
-                height={100}
                 alt="Logo"
                 className="w-full h-full object-contain"
               />
@@ -148,6 +146,9 @@ export default async function InvoiceDetailPage({
                   </td>
                   <td className="py-3 px-2 text-sm text-gray-700">
                     {item.product.nama}
+                  </td>
+                  <td className="py-3 px-2 text-sm text-center text-gray-700">
+                    {item.product.gramasi ? `${item.product.gramasi}g` : "-"}
                   </td>
                   <td className="py-3 px-2 text-sm text-center text-gray-700">
                     {item.quantity}
