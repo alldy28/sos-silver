@@ -82,6 +82,8 @@ model Invoice {
   customerAddress String?
   totalAmount     Int
   shippingFee     Int           @default(0)
+  subTotal        Float    @default(0)
+  discountPercent Float    @default(0)
   status          String        @default("UNPAID")
   paymentProofUrl String?
   createdAt       DateTime      @default(now())
