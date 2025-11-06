@@ -101,4 +101,5 @@ model InvoiceItem {
   product         SossilverProduct @relation(fields: [productId], references: [id])
   quantity        Int
   priceAtTime     Int
+  gramasi     Float    @default(0)
 }
