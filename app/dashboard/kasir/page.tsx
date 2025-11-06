@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   searchProductsAction,
   createInvoiceAction,
   type CartItemInput,
-} from '../../../actions/invoice-actions'; // Impor dari actions
-import type { SossilverProduct } from '@prisma/client';
+} from "../../../actions/invoice-actions"; // Pastikan path ini benar
+import type { SossilverProduct } from "@prisma/client";
 import {
   Search,
   X,
@@ -18,9 +18,10 @@ import {
   ShoppingCart,
   DollarSign,
   Package,
-} from 'lucide-react';
+  Percent,
+} from "lucide-react";
 
-// Tipe untuk item di keranjang UI (termasuk nama dan gambar)
+// Tipe untuk item di keranjang UI
 interface CartItem extends CartItemInput {
   name: string;
   gambarUrl: string | null;
@@ -38,7 +39,7 @@ export default function KasirPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State untuk pencarian
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SossilverProduct[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -47,11 +48,12 @@ export default function KasirPage() {
 
   // State untuk pelanggan dan biaya
   const [customer, setCustomer] = useState<CustomerData>({
-    customerName: '',
-    customerPhone: '',
-    customerAddress: '',
+    customerName: "",
+    customerPhone: "",
+    customerAddress: "",
   });
   const [shippingFee, setShippingFee] = useState(0);
+  const [discountPercent, setDiscountPercent] = useState(0); // State untuk diskon dalam persen
 
   /**
    * Menangani pencarian produk
@@ -72,11 +74,9 @@ export default function KasirPage() {
    * Menambah produk ke keranjang
    */
   const addToCart = (product: SossilverProduct) => {
-    // Cek apakah produk sudah ada di keranjang
     const existingItem = cart.find((item) => item.productId === product.id);
 
     if (existingItem) {
-      // Jika sudah ada, tambah quantity
       setCart(
         cart.map((item) =>
           item.productId === product.id
@@ -85,7 +85,6 @@ export default function KasirPage() {
         )
       );
     } else {
-      // Jika belum ada, tambahkan item baru
       setCart([
         ...cart,
         {
@@ -94,12 +93,11 @@ export default function KasirPage() {
           gambarUrl: product.gambarUrl,
           quantity: 1,
           priceAtTime: product.hargaJual,
-          gramasi: product.gramasi // Ambil harga jual saat ini
+          gramasi: product.gramasi, // Pastikan gramasi ditambahkan
         },
       ]);
     }
-    // Kosongkan hasil pencarian
-    setSearchQuery('');
+    setSearchQuery("");
     setSearchResults([]);
   };
 
@@ -108,7 +106,6 @@ export default function KasirPage() {
    */
   const updateQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity < 1) {
-      // Hapus item jika kuantitas < 1
       setCart(cart.filter((item) => item.productId !== productId));
     } else {
       setCart(
@@ -125,17 +122,27 @@ export default function KasirPage() {
    * Menghitung subtotal dan total
    */
   const subTotal = useMemo(() => {
-    return cart.reduce((acc, item) => acc + item.priceAtTime * item.quantity, 0);
+    return cart.reduce(
+      (acc, item) => acc + item.priceAtTime * item.quantity,
+      0
+    );
   }, [cart]);
 
+  // Hitung nilai diskon dalam rupiah
+  const discountAmount = useMemo(() => {
+    return (subTotal * discountPercent) / 100;
+  }, [subTotal, discountPercent]);
+
   const totalAmount = useMemo(() => {
-    return subTotal + shippingFee;
-  }, [subTotal, shippingFee]);
+    return subTotal + shippingFee - discountAmount;
+  }, [subTotal, shippingFee, discountAmount]);
 
   /**
    * Menangani input pelanggan
    */
-  const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleCustomerChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setCustomer({
       ...customer,
       [e.target.name]: e.target.value,
@@ -147,41 +154,43 @@ export default function KasirPage() {
    */
   const handleSubmitInvoice = async () => {
     if (cart.length === 0) {
-      alert('Keranjang belanja masih kosong.');
+      alert("Keranjang belanja masih kosong.");
       return;
     }
     if (!customer.customerName) {
-      alert('Nama pelanggan wajib diisi.');
+      alert("Nama pelanggan wajib diisi.");
       return;
     }
 
     setIsSubmitting(true);
-    
-    // Siapkan data item (hanya ID, qty, dan price)
-    const itemsInput: CartItemInput[] = cart.map(item => ({
+
+    // 1. Siapkan itemsInput (sesuai interface CartItemInput)
+    const itemsInput: CartItemInput[] = cart.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
       priceAtTime: item.priceAtTime,
-      gramasi: item.gramasi
+      gramasi: item.gramasi,
     }));
 
+    // 2. Panggil action dengan 6 argumen yang benar
     const result = await createInvoiceAction(
-      customer,
-      itemsInput,
-      shippingFee,
-      totalAmount
+      customer, // 1.
+      itemsInput, // 2.
+      subTotal, // 3.
+      shippingFee, // 4.
+      discountPercent, // 5.
+      totalAmount // 6.
     );
 
     setIsSubmitting(false);
 
     if (result.success) {
       alert(result.message);
-      // Kosongkan state setelah berhasil
+      // Reset semua state ke awal
       setCart([]);
-      setCustomer({ customerName: '', customerPhone: '', customerAddress: '' });
+      setCustomer({ customerName: "", customerPhone: "", customerAddress: "" });
       setShippingFee(0);
-      // (Opsional) Redirect ke halaman detail invoice
-      // router.push(`/dashboard/invoices/${result.invoiceId}`);
+      setDiscountPercent(0);
     } else {
       alert(`Gagal membuat invoice: ${result.message}`);
     }
@@ -225,8 +234,7 @@ export default function KasirPage() {
                         {product.gramasi} gr
                       </p>
                       <p className="text-sm text-gray-500">
-                        Stok: ... | Harga:{" "}
-                        {product.hargaJual.toLocaleString("id-ID")}
+                        Harga: Rp {product.hargaJual.toLocaleString("id-ID")}
                       </p>
                     </div>
                   </li>
@@ -348,7 +356,7 @@ export default function KasirPage() {
           </div>
         </div>
 
-        {/* --- Rangkuman Total --- */}
+        {/* --- Rangkuman Total (Termasuk Diskon) --- */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border dark:border-gray-700 space-y-3">
           <h2 className="text-xl font-semibold flex items-center">
             <DollarSign className="w-5 h-5 mr-2" />
@@ -375,6 +383,43 @@ export default function KasirPage() {
               className="w-32 px-2 py-1 border rounded-lg text-right dark:bg-gray-700 dark:border-gray-600"
             />
           </div>
+
+          {/* == Input Diskon ada di sini == */}
+          <div className="flex justify-between items-center">
+            <label
+              htmlFor="discountPercent"
+              className="text-gray-600 dark:text-gray-300 flex items-center"
+            >
+              <Percent className="w-4 h-4 mr-1" />
+              Diskon (%)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                id="discountPercent"
+                value={discountPercent}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value, 10) || 0;
+                  // Batasi diskon maksimal 100%
+                  setDiscountPercent(Math.min(Math.max(value, 0), 100));
+                }}
+                min="0"
+                max="100"
+                className="w-20 px-2 py-1 border rounded-lg text-right dark:bg-gray-700 dark:border-gray-600"
+              />
+              <span className="text-gray-600 dark:text-gray-300">%</span>
+            </div>
+          </div>
+
+          {/* Tampilkan nilai diskon dalam Rupiah */}
+          {discountPercent > 0 && (
+            <div className="flex justify-between text-sm text-red-600 dark:text-red-400">
+              <span>Potongan Diskon</span>
+              <span>- Rp {discountAmount.toLocaleString("id-ID")}</span>
+            </div>
+          )}
+
+          {/* Total Akhir */}
           <div className="border-t dark:border-gray-700 pt-3 mt-3">
             <div className="flex justify-between text-xl font-bold">
               <span>Total</span>

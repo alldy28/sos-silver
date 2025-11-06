@@ -30,11 +30,10 @@ export default async function InvoiceDetailPage({
     notFound();
   }
 
-  // Hitung subtotal dari item
-  const subTotal = invoice.items.reduce(
-    (acc, item) => acc + item.priceAtTime * item.quantity,
-    0
-  );
+  // --- PENYESUAIAN ---
+  // Kita tidak perlu menghitung 'subTotal' lagi karena sudah ada di 'invoice.subTotal'
+  // Kita hanya perlu menghitung 'discountAmount' (Rupiah) untuk ditampilkan
+  const discountAmount = (invoice.subTotal * invoice.discountPercent) / 100;
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
@@ -50,7 +49,7 @@ export default async function InvoiceDetailPage({
             {/* Logo */}
             <div className="w-24 h-24 flex items-center justify-center">
               <img
-                src="/logosos-baru.png"
+                src="/logosos-baru.png" // Pastikan path logo ini benar
                 alt="Logo"
                 className="w-full h-full object-contain"
               />
@@ -151,7 +150,9 @@ export default async function InvoiceDetailPage({
                     {item.product.nama}
                   </td>
                   <td className="py-3 px-2 text-sm text-center text-gray-700">
-                    {item.product.gramasi ? `${item.product.gramasi}g` : "-"}
+                    {/* --- PENYESUAIAN --- */}
+                    {/* Menggunakan item.gramasi (saat penjualan), bukan item.product.gramasi */}
+                    {item.gramasi ? `${item.gramasi}g` : "-"}
                   </td>
                   <td className="py-3 px-2 text-sm text-center text-gray-700">
                     {item.quantity}
@@ -168,13 +169,34 @@ export default async function InvoiceDetailPage({
           </table>
         </div>
 
-        {/* Totals */}
+        {/* === BAGIAN TOTAL YANG DISEMPURNAKAN === */}
         <div className="flex justify-end mb-8">
           <div className="w-72">
+            {/* 1. Subtotal (dari database) */}
             <div className="flex justify-between py-2 text-sm">
               <span className="text-gray-700">Subtotal</span>
-              <span className="text-gray-700">{formatCurrency(subTotal)}</span>
+              <span className="text-gray-700">
+                {formatCurrency(invoice.subTotal)}
+              </span>
             </div>
+
+            {/* 2. Biaya Kirim (Baru) */}
+            <div className="flex justify-between py-2 text-sm">
+              <span className="text-gray-700">Biaya Kirim</span>
+              <span className="text-gray-700">
+                {formatCurrency(invoice.shippingFee)}
+              </span>
+            </div>
+
+            {/* 3. Diskon (Baru, hanya tampil jika ada) */}
+            {invoice.discountPercent > 0 && (
+              <div className="flex justify-between py-2 text-sm text-red-600">
+                <span>Diskon ({invoice.discountPercent}%)</span>
+                <span>- {formatCurrency(discountAmount)}</span>
+              </div>
+            )}
+
+            {/* 4. Total (dari database) */}
             <div className="flex justify-between py-2 border-t border-b-2 border-black text-base font-bold">
               <span className="text-gray-800">Total</span>
               <span className="text-gray-800">
@@ -183,6 +205,7 @@ export default async function InvoiceDetailPage({
             </div>
           </div>
         </div>
+        {/* ====================================== */}
       </div>
       {/* PDF Content End */}
 
