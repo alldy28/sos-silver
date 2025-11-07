@@ -37,7 +37,7 @@ function NextArrow(props: ArrowProps) {
       onClick={onClick}
       aria-label="Next slide"
     >
-      <ChevronRight className="w-5 h-5 text-white" />
+      {/* <ChevronRight className="w-5 h-5 text-white" /> */}
     </button>
   );
 }
@@ -52,7 +52,7 @@ function PrevArrow(props: ArrowProps) {
       onClick={onClick}
       aria-label="Previous slide"
     >
-      <ChevronLeft className="w-5 h-5 text-white" />
+      {/* <ChevronLeft className="w-5 h-5 text-white" /> */}
     </button>
   );
 }

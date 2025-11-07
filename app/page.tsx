@@ -54,7 +54,7 @@ const featuredProducts = [
   },
   {
     id: "4",
-    nama: "SoS Silver Ba 500 gr",
+    nama: "SoS Silver 500 gr",
     gramasi: 500,
     fineness: 999.9,
     gambarUrl: "/images/products/sos-500gr.png",
