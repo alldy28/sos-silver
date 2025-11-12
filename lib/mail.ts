@@ -3,7 +3,7 @@
 import nodemailer from 'nodemailer'
 
 // [PERBAIKAN] Menggunakan kode Nodemailer baru Anda
-const domain = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+const domain = process.env.NEXTAUTH_URL || 'https://sossilver.co.id'
 
 // Konfigurasi Gmail
 const transporter = nodemailer.createTransport({
