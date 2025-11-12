@@ -176,15 +176,13 @@ export default function KasirPage() {
     const result = await createInvoiceAction(
       customer, // 1.
       itemsInput, // 2.
-      subTotal, // 3.
       shippingFee, // 4.
       discountPercent, // 5.
-      totalAmount // 6.
     );
 
     setIsSubmitting(false);
 
-    if (result.success) {
+    if (result.status !== "success") {
       alert(result.message);
       // Reset semua state ke awal
       setCart([]);

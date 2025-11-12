@@ -1,35 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import {
   ShieldCheck,
-  // Gem,
   Package,
   ArrowRight,
   ChevronRight,
   Award,
-  MenuIcon,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
+// [DIHAPUS] CSS Slick Carousel tidak boleh diimpor di Server Component
+// import "slick-carousel/slick/slick.css";
+// import "slick-carousel/slick/slick-theme.css";
 
+import { db } from "@/lib/db";
+import { PromoPopup } from "@/app/dashboard/promo/_components/PromoPopup";
 
-import "slick-carousel/slick/slick.css"; 
-import "slick-carousel/slick/slick-theme.css";
-
-
-
-import { db } from '@/lib/db';
-import { PromoPopup } from '@/app/dashboard/promo/_components/PromoPopup'; // Impor komponen popup
+// [PERBAIKAN] Impor komponen header dan footer yang sudah dipisah
+import { SiteFooter } from "../components/landing/site-footer";
 
 // --- Data Mockup untuk Produk Unggulan ---
-// Nanti Anda bisa mengambil ini dari database jika mau
 const featuredProducts = [
   {
     id: "2",
@@ -61,194 +50,37 @@ const featuredProducts = [
   },
 ];
 
-
-const navItems = [
-  { href: "#produk", label: "Produk" },
-  { href: "#fitur", label: "Keunggulan" },
-  { href: "/verif", label: "Verifikasi" },
-];
-
-/**
- * Komponen Header/Navbar
- */
-function SiteHeader() {
-  return (
-    <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-sm border-b border-gray-200">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/*
-          Layout 3-kolom:
-          - (Kiri) Slot 1: flex-1, md:hidden -> Untuk Tombol Menu Mobile
-          - (Tengah) Slot 2: flex-1, justify-center -> Untuk Logo
-          - (Kanan) Slot 3: flex-1, justify-end -> Untuk Navigasi Desktop
-          Ini secara otomatis akan menengahkan logo di mobile
-        */}
-        <div className="flex justify-between items-center h-16">
-          {/* --- SLOT KIRI: Tombol Menu Mobile --- */}
-          <div className="flex-1 md:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MenuIcon className="h-6 w-6" />
-                  <span className="sr-only">Buka menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left">
-                <SheetHeader>
-                  <SheetTitle className="sr-only">Navigasi</SheetTitle>
-                </SheetHeader>
-                {/* Navigasi Versi Mobile (di dalam Sidebar) */}
-                <nav className="flex flex-col gap-6 mt-8">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="text-lg font-medium text-gray-700 hover:text-gray-900"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                  {/* Tombol Login Admin di Mobile */}
-                  {/* <Link
-                    href="/dashboard"
-                    className="inline-flex items-center justify-center px-5 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-slate-800 hover:bg-slate-700 transition-colors"
-                  >
-                    Login Admin
-                  </Link> */}
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
-
-          {/* --- SLOT TENGAH: Logo (Center di Mobile) --- */}
-          <div className="flex-1 flex justify-center md:justify-start md:flex-none">
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/logosos-baru.png"
-                alt="Sossilver Logo"
-                width={140}
-                height={40}
-                className="h-10 w-auto"
-                priority
-              />
-              <div className="text-lg font-semibold text-slate-800">
-                SoS Silver
-              </div>
-            </Link>
-          </div>
-
-          {/* --- SLOT KANAN: Navigasi Desktop & Aksi --- */}
-          <div className="flex-1 hidden md:flex justify-end items-center gap-8">
-            {/* Navigasi Desktop */}
-            <nav className="flex gap-8">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Tombol Aksi (Login Admin) */}
-            {/* <div className="flex items-center">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center justify-center px-5 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-slate-800 hover:bg-slate-700 transition-colors"
-              >
-                Login Admin
-              </Link>
-            </div> */}
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-/**
- * Komponen Footer
- */
-function SiteFooter() {
-  return (
-    <footer className="bg-slate-100 border-t border-gray-200">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/logosos-baru.png" // Mengambil dari /public/logosos-baru.png
-                alt="Sossilver Logo"
-                width={140} // Atur lebar asli gambar (atau rasio)
-                height={40} // Atur tinggi asli gambar (atau rasio)
-                className="h-10 w-auto" // Tinggi 40px, lebar otomatis
-                priority // Membantu LCP
-              />
-              <div className="text-lg font-semibold text-slate-800">
-                {" "}
-                SoS Silver{" "}
-              </div>
-            </Link>
-          </div>
-          <nav className="flex gap-6">
-            <Link
-              href="#"
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Tentang Kami
-            </Link>
-            <Link
-              href="#"
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Kontak
-            </Link>
-            <Link
-              href="#"
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              FAQ
-            </Link>
-          </nav>
-        </div>
-        <div className="mt-8 border-t border-gray-300 pt-8 text-center">
-          <p className="text-sm text-gray-500">
-            &copy; {new Date().getFullYear()} sosilver.co.id. Hak Cipta
-            Dilindungi.
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-
-
+// [DIHAPUS] Komponen SiteHeader dan SiteFooter dipindahkan ke file terpisah
 
 /**
  * Halaman Utama (Homepage)
  */
 export default async function Homepage() {
-
-  let promoSlides: { id: string; createdAt: Date; imageUrl: string; destinationUrl: string | null; order: number; isActive: boolean; updatedAt: Date; }[] = []; // Default array kosong
+  let promoSlides: {
+    id: string;
+    createdAt: Date;
+    imageUrl: string;
+    destinationUrl: string | null;
+    order: number;
+    isActive: boolean;
+    updatedAt: Date;
+  }[] = [];
   try {
     promoSlides = await db.promoSlide.findMany({
-      where: { isActive: true }, // Hanya ambil yang aktif
-      orderBy: { order: 'asc' }, // Urutkan berdasarkan order
+      where: { isActive: true },
+      orderBy: { order: "asc" },
     });
   } catch (error) {
     console.error("Gagal mengambil data slide promo (homepage):", error);
   }
 
-
   return (
     <div className="bg-white text-slate-800">
-      <SiteHeader />
 
       {/* --- Hero Section --- */}
       <main>
         <section className="relative bg-white">
+          {/* ... (Konten Hero Section Anda tidak berubah) ... */}
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               {/* Kolom Teks */}
@@ -304,20 +136,18 @@ export default async function Homepage() {
 
         {/* --- Fitur / Keunggulan --- */}
         <section id="fitur" className="bg-white py-24">
+          {/* ... (Konten Fitur Section Anda tidak berubah) ... */}
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             {/* --- Kolom 1: Video Lokal (Diubah untuk Portrait) --- */}
-            {/* DIUBAH: Hapus aspect-video, tambahkan max-w-sm dan mx-auto */}
             <div className="block lg:block rounded-lg shadow-xl overflow-hidden max-w-sm mx-auto">
               {" "}
-              {/* Batasi lebar */}
               <video
                 className="w-full h-auto opacity-80" // Tinggi menyesuaikan rasio
-                src="/sossilver.mp4" // <-- GANTI NAMA FILE INI
-                autoPlay // Putar otomatis
-                muted // Harus di-mute agar autoplay berfungsi di banyak browser
-                loop // Ulangi video
-                playsInline // Penting untuk autoplay di iOS
-                // controls // Hapus komentar ini jika ingin menampilkan kontrol video
+                src="/sossilver.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
               >
                 Browser Anda tidak mendukung tag video. {/* Fallback text */}
               </video>
@@ -348,7 +178,6 @@ export default async function Homepage() {
                   <div>
                     <h3 className="text-xl font-semibold text-slate-900 mb-2">
                       {" "}
-                      {/* Ukuran font diperkecil */}
                       Jaminan Keaslian & Kemurnian
                     </h3>
                     <p className="text-slate-600">
@@ -365,7 +194,6 @@ export default async function Homepage() {
                   <div>
                     <h3 className="text-xl font-semibold text-slate-900 mb-2">
                       {" "}
-                      {/* Ukuran font diperkecil */}
                       Keaslian Terverifikasi
                     </h3>
                     <p className="text-slate-600">
@@ -382,7 +210,6 @@ export default async function Homepage() {
                   <div>
                     <h3 className="text-xl font-semibold text-slate-900 mb-2">
                       {" "}
-                      {/* Ukuran font diperkecil */}
                       Desain Eksklusif & Aman
                     </h3>
                     <p className="text-slate-600">
@@ -414,11 +241,13 @@ export default async function Homepage() {
                   className="rounded-lg shadow-lg border border-gray-200 overflow-hidden flex flex-col"
                 >
                   <div className="relative w-full h-64 bg-gray-100">
+                    {/* [PERBAIKAN] Menggunakan sintaks Image modern */}
                     <Image
                       src={product.gambarUrl}
                       alt={product.nama}
-                      layout="fill"
-                      objectFit="cover"
+                      fill // Menggantikan layout="fill"
+                      style={{ objectFit: "cover" }} // Menggantikan objectFit="cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
                   </div>
                   <div className="p-6 bg-white grow">
@@ -430,8 +259,9 @@ export default async function Homepage() {
                     </p>
                   </div>
                   <div className="p-6 bg-gray-50 border-t border-gray-100">
+                    {/* [PERBAIKAN] Arahkan link ke halaman produk */}
                     <Link
-                      href="#"
+                      href="/produk"
                       className="inline-flex items-center font-medium text-gray-600 hover:text-indigo-800"
                     >
                       Lihat Detail <ChevronRight className="ml-1 h-4 w-4" />

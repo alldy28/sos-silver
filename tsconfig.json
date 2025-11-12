@@ -37,7 +37,7 @@
     "**/*.mts",
     ".next\\dev/types/**/*.ts",
     ".next\\dev/types/**/*.ts"
-  ],
+, "app/dashboard/invoice/_components/InvoiceActionsClient"  ],
   "exclude": [
     "node_modules"
   ]

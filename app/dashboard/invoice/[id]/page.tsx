@@ -2,10 +2,14 @@
 
 import { getInvoiceByIdAction } from "../../../../actions/invoice-actions";
 import { notFound } from "next/navigation";
-import UpdateStatusButton from "../_components/UpdateStatusButton";
+// [PERBAIKAN] Hapus impor-impor ini karena kita akan gunakan wrapper
+// import UpdateStatusButton from "../_components/UpdateStatusButton";
 import GeneratePdfButton from "../_components/GeneratePdfButton";
-import UploadPaymentProof from "../_components/UploadPaymentProof";
-import Image from "next/image";
+// import UploadPaymentProof from "../_components/UploadPaymentProof";
+import Image from "next/image"; // 'Image' masih digunakan, jadi jangan dihapus
+
+// [PERBAIKAN] Impor komponen 'wrapper' yang berisi semua logika aksi
+import { InvoiceActionsClient } from "../_components/InvoiceActionsClient";
 
 // --- Helper Functions ---
 const formatDate = (date: Date) =>
@@ -21,9 +25,13 @@ const formatCurrency = (amount: number) =>
 export default async function InvoiceDetailPage({
   params,
 }: {
+  // [PERBAIKAN] Kembalikan 'params' menjadi 'Promise'
   params: Promise<{ id: string }>;
 }) {
+  // [PERBAIKAN] Kita HARUS 'await' params terlebih dahulu
   const awaitedParams = await params;
+
+  // [PERBAIKAN] Gunakan 'awaitedParams.id'
   const invoice = await getInvoiceByIdAction(awaitedParams.id);
 
   if (!invoice) {
@@ -31,8 +39,7 @@ export default async function InvoiceDetailPage({
   }
 
   // --- PENYESUAIAN ---
-  // Kita tidak perlu menghitung 'subTotal' lagi karena sudah ada di 'invoice.subTotal'
-  // Kita hanya perlu menghitung 'discountAmount' (Rupiah) untuk ditampilkan
+  // Kode ini sudah benar
   const discountAmount = (invoice.subTotal * invoice.discountPercent) / 100;
 
   return (
@@ -48,6 +55,9 @@ export default async function InvoiceDetailPage({
           <div className="flex items-start gap-4">
             {/* Logo */}
             <div className="w-24 h-24 flex items-center justify-center">
+              {/* [PERBAIKAN] Menggunakan tag <img> standar untuk PDF
+                  karena <Image> Next.js mungkin tidak render di html2canvas
+              */}
               <img
                 src="/logosos-baru.png" // Pastikan path logo ini benar
                 alt="Logo"
@@ -214,22 +224,13 @@ export default async function InvoiceDetailPage({
         <GeneratePdfButton />
       </div>
 
-      {/* Admin Panels - Outside PDF */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        {/* Panel 1: Update Status */}
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border dark:border-gray-700">
-          <h2 className="text-xl font-semibold mb-3 dark:text-white">
-            Ubah Status Manual
-          </h2>
-          <UpdateStatusButton
-            invoiceId={invoice.id}
-            currentStatus={invoice.status as "PAID" | "UNPAID" | "CANCELLED"}
-          />
-        </div>
-
-        {/* Panel 2: Upload Payment Proof */}
-        <UploadPaymentProof
+      {/* [PERBAIKAN] Mengganti panel admin yang rusak 
+          dengan satu komponen 'InvoiceActionsClient' yang fungsional
+      */}
+      <div className="mt-6">
+        <InvoiceActionsClient
           invoiceId={invoice.id}
+          currentStatus={invoice.status}
           currentProofUrl={invoice.paymentProofUrl}
         />
       </div>

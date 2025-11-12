@@ -1,105 +1,122 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql" // Pastikan ini sesuai dengan database Anda
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Model untuk Produk Anda
 model SossilverProduct {
-  id              String   @id @default(cuid())
-  nama            String
-  series          String?
-  gramasi         Float    // Gunakan Float untuk angka desimal
-  fineness        Int      // Fineness (misal: 999) adalah angka bulat
-  hargaJual       Int
-  hargaBuyback    Int
-  tahunPembuatan  Int?
-  gambarUrl       String?
-  createdAt       DateTime @default(now())
-
-  // Relasi: Satu produk punya BANYAK kode
-  codes           GeneratedCode[]
-  invoiceItems    InvoiceItem[]
+  id             String          @id @default(cuid())
+  nama           String
+  series         String?
+  gramasi        Float
+  fineness       Int
+  hargaJual      Int
+  hargaBuyback   Int
+  tahunPembuatan Int?
+  gambarUrl      String?
+  createdAt      DateTime        @default(now())
+  codes          GeneratedCode[]
+  invoiceItems   InvoiceItem[]
 }
 
-// Model untuk Kode Unik
 model GeneratedCode {
-  id            String   @id @default(cuid())
-  kode          String   @unique // Kode 8 digit yang unik
-  sequentialId  Int?     // Sesuai kolom Anda
-  isUsed        Boolean  @default(false)
-  createdAt     DateTime @default(now())
-
-  // Relasi: Satu kode milik SATU produk
-  product   SossilverProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId String
+  id           String           @id @default(cuid())
+  kode         String           @unique
+  sequentialId Int?
+  isUsed       Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  productId    String
+  product      SossilverProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
-
 
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
   name      String?
+  
+  // [SEMPURNA] Kolom untuk Role dan Verifikasi
+  role      Role     @default(CUSTOMER)
+  emailVerified     DateTime?
+  verificationToken String?   @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
-  
-  // --- INI PERBAIKANNYA (Menambahkan relasi lawan ke Invoice) ---
-  invoices    Invoice[]
-}
 
+  // [SEMPURNA] Relasi 1: Invoice yang DIBUAT oleh Admin
+  createdInvoices Invoice[] @relation("AdminCreator")
+  
+  // [SEMPURNA] Relasi 2: Order yang DIMILIKI oleh Customer
+  orders          Invoice[] @relation("CustomerOwner")
+}
 
 model PriceImage {
   id       String @id @default("current_price_list")
-  imageUrl String // URL lengkap dari Imgur/penyimpanan lain
+  imageUrl String
 }
 
-
 model PromoSlide {
-  id             String  @id @default(cuid())
-  imageUrl       String  // URL gambar untuk slide ini
-  destinationUrl String? // URL tujuan jika slide diklik (opsional)
-  order          Int     // Urutan slide (misal: 1, 2, 3)
-  isActive       Boolean @default(true) // Untuk menonaktifkan slide tanpa menghapus
+  id             String   @id @default(cuid())
+  imageUrl       String
+  destinationUrl String?
+  order          Int
+  isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  @@index([order]) // Index untuk sorting
+  @@index([order])
 }
 
 model Invoice {
-  id              String        @id @default(cuid())
-  invoiceNumber   String        @unique
+  id              String   @id @default(cuid())
+  invoiceNumber   String   @unique
   customerName    String
   customerPhone   String?
   customerAddress String?
+  
+  // Data Keuangan (sesuai tabel Anda)
   totalAmount     Int
-  shippingFee     Int           @default(0)
+  shippingFee     Int      @default(0)
   subTotal        Float    @default(0)
   discountPercent Float    @default(0)
-  status          String        @default("UNPAID")
+  
+  // Status (sesuai tabel Anda)
+  status          String   @default("UNPAID")
   paymentProofUrl String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  
+  // Timestamps (sesuai tabel Anda)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // [SEMPURNA] Relasi 1: Admin yang membuat
   createdById     String
-  createdBy       User          @relation(fields: [createdById], references: [id])
+  createdBy       User     @relation("AdminCreator", fields: [createdById], references: [id])
+  
+  // [SEMPURNA] Relasi 2: Customer yang memiliki (opsional)
+  customerId      String?
+  customer        User?    @relation("CustomerOwner", fields: [customerId], references: [id])
+
+  // Relasi ke Item
   items           InvoiceItem[]
 }
 
 model InvoiceItem {
-  id              String @id @default(cuid())
-  invoiceId       String
-  invoice         Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  productId       String
-  product         SossilverProduct @relation(fields: [productId], references: [id])
-  quantity        Int
-  priceAtTime     Int
-  gramasi     Float    @default(0)
+  id          String   @id @default(cuid())
+  quantity    Int
+  priceAtTime Int
+  gramasi     Float    @default(0) // Sesuai tabel Anda
+
+  // Relasi
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String
+  product   SossilverProduct @relation(fields: [productId], references: [id])
+  productId String
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
 }

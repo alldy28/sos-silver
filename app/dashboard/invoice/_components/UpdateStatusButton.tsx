@@ -1,45 +1,51 @@
-// app/dashboard/invoice/_components/UpdateStatusButton.tsx
 "use client";
 
-import { useTransition } from "react";
-import { updateInvoiceStatusAction } from "../../../../actions/invoice-actions";
+// [PERBAIKAN] Impor useActionState dan useEffect
+import { useActionState, useEffect } from "react";
+// [PERBAIKAN] Impor sintaks yang benar
+import {
+  updateInvoiceStatusAction,
+  type InvoiceState,
+} from "../../../../actions/invoice-actions";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Menggunakan Button shadcn agar konsisten
 
-type InvoiceStatus = "PAID" | "UNPAID" | "CANCELLED";
 
 interface Props {
   invoiceId: string;
-  currentStatus: InvoiceStatus;
+  // [PERBAIKAN] Ubah currentStatus agar bisa menerima status lain
+  currentStatus: string;
 }
+
+// Definisikan initial state untuk hook
+const initialState: InvoiceState = { status: "info", message: "" };
 
 export default function UpdateStatusButton({
   invoiceId,
   currentStatus,
 }: Props) {
-  const [isPending, startTransition] = useTransition();
+  // [PERBAIKAN] Gunakan useActionState.
+  // 'isPending' akan otomatis didapat dari hook ini.
+  const [state, dispatch, isPending] = useActionState(
+    updateInvoiceStatusAction,
+    initialState
+  );
 
-  const handleUpdate = (newStatus: InvoiceStatus) => {
-    if (newStatus === currentStatus) return;
-
-    // Tampilkan konfirmasi sebelum membatalkan
-    if (newStatus === "CANCELLED") {
-      if (!confirm("Apakah Anda yakin ingin membatalkan invoice ini?")) {
-        return;
-      }
+  // [PERBAIKAN] Hapus 'alert()' dari action.
+  // Gunakan useEffect untuk menampilkan error jika ada.
+  useEffect(() => {
+    if (state.status === "error") {
+      // PENTING: 'alert' adalah UI yang buruk.
+      // Ganti ini dengan notifikasi 'Toast' untuk aplikasi profesional.
+      alert(`Error: ${state.message}`);
     }
+    // Jika sukses, action akan me-revalidasi path
+    // dan komponen akan me-render ulang dengan status baru.
+  }, [state]);
 
-    startTransition(async () => {
-      try {
-        const result = await updateInvoiceStatusAction(invoiceId, newStatus);
-        if (!result.success) {
-          alert(result.message);
-        }
-        // Halaman akan otomatis revalidasi oleh server action
-      } catch (error) {
-        alert("Terjadi kesalahan.");
-      }
-    });
-  };
+  // [PERBAIKAN] Hapus `confirm()`.
+  // Ini adalah UI yang buruk dan memblokir.
+  // Tindakan "Batalkan" harus disengaja oleh user.
 
   if (currentStatus === "PAID") {
     return (
@@ -63,33 +69,46 @@ export default function UpdateStatusButton({
     );
   }
 
-  // Jika status UNPAID
+  // Jika status UNPAID (atau status lain yang bisa diubah)
   return (
     <div className="flex flex-col sm:flex-row gap-3">
-      <button
-        onClick={() => handleUpdate("PAID")}
-        disabled={isPending}
-        className="flex-1 flex items-center justify-center px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:bg-gray-400"
-      >
-        {isPending ? (
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-        ) : (
-          <CheckCircle className="w-5 h-5 mr-2" />
-        )}
-        Tandai LUNAS
-      </button>
-      <button
-        onClick={() => handleUpdate("CANCELLED")}
-        disabled={isPending}
-        className="flex-1 flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 disabled:bg-gray-400"
-      >
-        {isPending ? (
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-        ) : (
-          <XCircle className="w-5 h-5 mr-2" />
-        )}
-        Batalkan
-      </button>
+      {/* [PERBAIKAN] Tombol LUNAS sekarang adalah <form> */}
+      <form action={dispatch}>
+        <input type="hidden" name="id" value={invoiceId} />
+        <input type="hidden" name="status" value="PAID" />
+        <Button
+          type="submit"
+          disabled={isPending}
+          variant="default"
+          className="flex-1 w-full bg-green-600 hover:bg-green-700"
+        >
+          {isPending ? (
+            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+          ) : (
+            <CheckCircle className="w-5 h-5 mr-2" />
+          )}
+          Tandai LUNAS
+        </Button>
+      </form>
+
+      {/* [PERBAIKAN] Tombol BATALKAN sekarang adalah <form> */}
+      <form action={dispatch}>
+        <input type="hidden" name="id" value={invoiceId} />
+        <input type="hidden" name="status" value="CANCELLED" />
+        <Button
+          type="submit"
+          disabled={isPending}
+          variant="destructive" // Menggunakan variant destructive
+          className="flex-1 w-full bg-red-600 hover:bg-red-700"
+        >
+          {isPending ? (
+            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+          ) : (
+            <XCircle className="w-5 h-5 mr-2" />
+          )}
+          Batalkan
+        </Button>
+      </form>
     </div>
   );
 }

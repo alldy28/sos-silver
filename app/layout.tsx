@@ -2,6 +2,13 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import { CartProvider } from "./context/CartContext";
+import { Navbar } from "../components/Navbar";
+import { FloatingCartLink } from "../components/FloatingCartLink";
+
+// [PERBAIKAN] Tambahkan impor CSS Slick Carousel di sini
+import "slick-carousel/slick/slick.css"; 
+import "slick-carousel/slick/slick-theme.css";
 
 
 // Setup font Inter dengan variabel CSS
@@ -134,7 +141,11 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
+        <CartProvider>
+          <Navbar />
+          <main>{children}</main>
+          <FloatingCartLink />
+        </CartProvider>
         <WhatsAppBubble />
       </body>
     </html>

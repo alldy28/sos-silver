@@ -1,28 +1,47 @@
 'use server'
 
-import { signOut } from "@/auth";
+import { signOut } from '@/auth'
 import { signIn } from '@/auth' // Impor dari auth.ts
 import { AuthError } from 'next-auth'
 
-// Fungsi ini akan dipanggil oleh form login
-export async function authenticate (
-  prevState: string | undefined,
+// [PERBAIKAN 1] Tipe state didefinisikan secara lokal, TIDAK DI-EKSPOR
+type LoginState = {
+  status: 'info' | 'error' | 'success'
+  message: string
+}
+
+// [PERBAIKAN 2] 'initialState' DIHAPUS DARI SINI
+// Pindahkan ke file 'login-form.tsx'
+
+/**
+ * Fungsi ini akan dipanggil oleh form login
+ * [PERBAIKAN 3] Ganti nama 'authenticate' -> 'loginAction'
+ * dan perbarui parameter/return type
+ */
+export async function loginAction (
+  prevState: LoginState, // <-- Diperbarui
   formData: FormData
-) {
+): Promise<LoginState> {
+  // <-- Diperbarui
   try {
     // Coba login menggunakan provider 'credentials'
     await signIn('credentials', formData)
-    return // Jika sukses, redirect akan ditangani oleh middleware
+
+    // Jika signIn berhasil, middleware akan me-redirect.
+    // Kode ini mungkin tidak akan tercapai, tapi sebagai fallback.
+    return { status: 'success', message: 'Login berhasil.' }
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
-          return 'Email atau password salah.'
+          // [PERBAIKAN 4] Kembalikan objek LoginState
+          return { status: 'error', message: 'Email atau password salah.' }
         default:
-          return 'Terjadi kesalahan. Coba lagi.'
+          // [PERBAIKAN 4] Kembalikan objek LoginState
+          return { status: 'error', message: 'Terjadi kesalahan. Coba lagi.' }
       }
     }
-    // Jika error bukan dari NextAuth, lempar lagi
+    // Jika error bukan dari NextAuth, lempar lagi agar ditangani
     throw error
   }
 }
@@ -31,4 +50,3 @@ export async function logoutAction () {
   // Panggil signOut dari file terpisah
   await signOut({ redirectTo: '/login' })
 }
-
