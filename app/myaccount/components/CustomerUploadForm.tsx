@@ -12,8 +12,6 @@ import { Loader2, UploadCloud } from "lucide-react";
 
 interface UploadProps {
   invoiceId: string;
-  // Kita tidak perlu 'currentProofUrl' lagi,
-  // karena InvoiceCard hanya akan me-render ini jika statusnya 'UNPAID'
 }
 
 const initialState: InvoiceState = { status: "info", message: "" };
@@ -26,14 +24,19 @@ export function CustomerUploadForm({ invoiceId }: UploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // [PERBAIKAN] Hapus 'alert()' karena menyebabkan crash (konflik dengan revalidate)
+    // Cukup tangani 'error' jika Anda mau, tapi 'success' akan ditangani
+    // oleh 'revalidatePath' dari server action.
     if (state.status === "error") {
-      alert(state.message); // Ganti dengan Toast
+      // Anda masih bisa menggunakan alert untuk error jika mau,
+      // tapi lebih baik gunakan Toast
+      alert(state.message);
     }
-    if (state.status === "success") {
-      alert("Upload berhasil!"); // Ganti dengan Toast
-      // Halaman akan di-revalidate oleh action,
-      // jadi form ini akan hilang dan diganti status "Verifikasi"
-    }
+
+    // [DIHAPUS]
+    // if (state.status === 'success') {
+    //   alert('Upload berhasil!'); // <-- INI PENYEBAB CRASH
+    // }
   }, [state]);
 
   return (
