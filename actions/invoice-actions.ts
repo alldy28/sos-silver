@@ -5,7 +5,7 @@ import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 import { put, del } from '@vercel/blob'
 import { z } from 'zod'
-import { Prisma, SossilverProduct, Role } from '@prisma/client'
+import { SossilverProduct, Role } from '@prisma/client'
 import { redirect } from 'next/navigation'
 
 // --- Tipe Data dari Client ---
@@ -587,6 +587,7 @@ export async function checkoutAction (
     if (itemsInput.length === 0) {
       return { status: 'error', message: 'Keranjang tidak boleh kosong.' }
     }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return { status: 'error', message: 'Gagal memproses data keranjang.' }
   }

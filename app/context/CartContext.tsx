@@ -1,23 +1,23 @@
-// src/context/CartContext.tsx
 "use client";
 
-import { SossilverProduct } from "@prisma/client";
 import {
   createContext,
   useContext,
   useState,
   useEffect,
   ReactNode,
+  useCallback, // <-- WAJIB: Impor useCallback
 } from "react";
+import { SossilverProduct } from "@prisma/client"; // Impor SossilverProduct (hanya untuk tipe, tidak dipakai langsung)
 
 // [PERBAIKAN 1] Definisikan tipe minimal yang dibutuhkan
-// Ini adalah tipe yang sama dengan 'ProductForCart' dari ProductCard
-// Kita letakkan di sini agar bisa di-share.
+// Tipe ini harus sesuai dengan data yang dikirim dari ProductCard
 export interface ProductForCart {
   id: string;
   nama: string;
   hargaJual: number;
   gramasi: number;
+  fineness: number; // Dari ProductCard
   gambarUrl: string | null;
 }
 
@@ -25,12 +25,11 @@ export interface ProductForCart {
  * Tipe data untuk item di keranjang
  */
 export interface CartItem {
-  productId: string; // ID unik dari produk
+  productId: string;
   name: string;
-  price: number; // Harga satuan produk saat ini (untuk display)
-  priceAtTime: number; // Harga pada saat ditambahkan ke cart
+  priceAtTime: number; // Harga yang digunakan untuk total
   gramasi: number;
-  gambarUrl: string | null;
+  image: string | null; // URL gambar
   quantity: number;
 }
 
@@ -40,18 +39,16 @@ export interface CartItem {
 interface CartContextType {
   cartItems: CartItem[];
   itemCount: number;
-  // [PERBAIKAN 2] Ubah parameter 'addToCart' agar lebih aman
-  // Kita tidak perlu *seluruh* objek Prisma, hanya data minimal
   addToCart: (product: ProductForCart) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, newQuantity: number) => void;
   clearCart: () => void;
   totalPrice: number;
-  isInCart: (productId: string) => boolean; // [PERBAIKAN 3] Tambah 'isInCart'
+  isInCart: (productId: string) => boolean;
 }
 
-// 1. Buat Konteks
 const CartContext = createContext<CartContextType | undefined>(undefined);
+const CART_STORAGE_KEY = "sossilver_cart";
 
 /**
  * Hook untuk menggunakan Cart Context
@@ -73,104 +70,98 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load cart dari localStorage
   useEffect(() => {
-    const storedCart = localStorage.getItem("sossilver_cart");
+    const storedCart = localStorage.getItem(CART_STORAGE_KEY);
     if (storedCart) {
       try {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setCartItems(JSON.parse(storedCart));
       } catch (error) {
         console.error("Error parsing cart from localStorage:", error);
-        localStorage.removeItem("sossilver_cart");
+        localStorage.removeItem(CART_STORAGE_KEY);
       }
     }
     setIsHydrated(true);
   }, []);
 
-  // Simpan cart ke localStorage
+  // Simpan cart ke localStorage setiap kali berubah
   useEffect(() => {
     if (!isHydrated) return;
-    localStorage.setItem("sossilver_cart", JSON.stringify(cartItems));
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
   }, [cartItems, isHydrated]);
 
-  /**
-   * Menambah produk ke keranjang
-   */
-  // [PERBAIKAN 2] Parameter sekarang adalah 'ProductForCart'
-  const addToCart = (product: ProductForCart) => {
+  // --- FUNGSI-FUNGSI DENGAN useCallBack (Mencegah Loop Tak Terbatas) ---
+
+  // [PERBAIKAN LOOP] Gunakan useCallback
+  const addToCart = useCallback((product: ProductForCart) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find(
         (item) => item.productId === product.id
       );
 
       if (existingItem) {
-        // Jika sudah ada, tambah kuantitas
         return prevItems.map((item) =>
           item.productId === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-        // Jika belum ada, tambahkan sebagai item baru
+        // Tambahkan item baru
         const newItem: CartItem = {
           productId: product.id,
           name: product.nama,
-          price: product.hargaJual,
-          priceAtTime: product.hargaJual, // Simpan harga saat ditambahkan
+          priceAtTime: product.hargaJual,
           gramasi: product.gramasi,
-          gambarUrl: product.gambarUrl, // <-- Sudah benar
+          image: product.gambarUrl,
           quantity: 1,
         };
         return [...prevItems, newItem];
       }
     });
-  };
+  }, []); // Dependensi kosong karena fungsi setter tidak berubah
 
-  /**
-   * Mengubah kuantitas item
-   */
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    setCartItems((prevItems) => {
-      if (newQuantity < 1) {
-        return prevItems.filter((item) => item.productId !== productId);
-      } else {
-        return prevItems.map((item) =>
-          item.productId === productId
-            ? { ...item, quantity: newQuantity }
-            : item
-        );
-      }
-    });
-  };
+  // [PERBAIKAN LOOP] Gunakan useCallback
+  const updateQuantity = useCallback(
+    (productId: string, newQuantity: number) => {
+      setCartItems((prevItems) => {
+        if (newQuantity < 1) {
+          return prevItems.filter((item) => item.productId !== productId);
+        } else {
+          return prevItems.map((item) =>
+            item.productId === productId
+              ? { ...item, quantity: newQuantity }
+              : item
+          );
+        }
+      });
+    },
+    []
+  );
 
-  /**
-   * Menghapus item dari keranjang
-   */
-  const removeFromCart = (productId: string) => {
+  // [PERBAIKAN LOOP] Gunakan useCallback
+  const removeFromCart = useCallback((productId: string) => {
     setCartItems((prevItems) =>
       prevItems.filter((item) => item.productId !== productId)
     );
-  };
+  }, []);
 
-  /**
-   * Mengosongkan keranjang
-   */
-  const clearCart = () => {
+  // [PERBAIKAN LOOP] Gunakan useCallback (INI MEMPERBAIKI INFINITE LOOP DI CHECKOUT)
+  const clearCart = useCallback(() => {
     setCartItems([]);
-  };
+  }, []);
 
-  // [PERBAIKAN 3] Tambahkan implementasi 'isInCart'
-  const isInCart = (productId: string) => {
-    return cartItems.some((item) => item.productId === productId);
-  };
-
-  // Hitung jumlah total item
+  // Hitung jumlah total item (computed value)
   const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
-  // Hitung total harga
+  // Hitung total harga (computed value)
   const totalPrice = cartItems.reduce(
     (total, item) => total + item.priceAtTime * item.quantity,
     0
   );
+
+  // Check apakah item ada (computed value)
+  const isInCart = (productId: string) => {
+    return cartItems.some((item) => item.productId === productId);
+  };
 
   const value: CartContextType = {
     cartItems,
@@ -180,7 +171,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     removeFromCart,
     updateQuantity,
     clearCart,
-    isInCart, // [PERBAIKAN 3] Tambahkan 'isInCart' ke value
+    isInCart,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

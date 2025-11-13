@@ -137,7 +137,7 @@ export default function CartPage() {
                 className="flex flex-col sm:flex-row items-center gap-4 p-4 border rounded-lg"
               >
                 <Image
-                  src={item.gambarUrl || "https://placehold.co/100x100"}
+                  src={item.image || "https://placehold.co/100x100"}
                   alt={item.name}
                   width={100}
                   height={100}

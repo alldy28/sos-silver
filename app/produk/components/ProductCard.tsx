@@ -23,6 +23,7 @@ export function ProductCard({ product, isLoggedIn }: ProductCardProps) {
     nama: product.nama,
     hargaJual: product.hargaJual,
     gramasi: product.gramasi,
+    fineness: product.fineness,
     gambarUrl: product.gambarUrl,
   };
 
