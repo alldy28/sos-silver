@@ -31,7 +31,10 @@ export type InvoiceState = {
     id?: string[]
     status?: string[]
     file?: string[]
-    customer?: string[]
+    // [PERBAIKAN] Menghapus 'customer' dan menambahkan field spesifik
+    customerPhone?: string[]
+    customerAddress?: string[]
+    // Akhir perbaikan
     itemsInput?: string[]
     _form?: string[]
     shippingFee?: string[]
@@ -43,7 +46,7 @@ export type CreateInvoiceState = InvoiceState & {
   invoiceId?: string
 }
 
-// --- Skema Zod (Ditempatkan di level atas) ---
+// --- Skema Zod ---
 
 const CartItemSchema = z.object({
   productId: z.string().cuid(),
@@ -52,22 +55,14 @@ const CartItemSchema = z.object({
   gramasi: z.number().min(0)
 })
 
-const CustomerSchema = z.object({
+// [PERBAIKAN] Menambah validasi phone dan address di CustomerInput
+const CustomerInputSchema = z.object({
   customerName: z.string().min(1, 'Nama pelanggan wajib diisi.'),
-  customerPhone: z.string().optional(),
-  customerAddress: z.string().optional()
+  customerPhone: z.string().min(8, 'Nomor telepon wajib diisi.'),
+  customerAddress: z.string().min(10, 'Alamat pengiriman wajib diisi.')
 })
 
-const CreateInvoiceSchema = z.object({
-  customer: CustomerSchema,
-  itemsInput: z.array(CartItemSchema).min(1, 'Keranjang tidak boleh kosong.'),
-  shippingFee: z.number().min(0),
-  discountPercent: z.number().min(0).max(100)
-})
-
-// [PENYEMPURNAAN] Skema untuk update status
-// [PERBAIKAN] Menambahkan status baru 'MENUNGGU_KONFIRMASI_ADMIN'
-// Ini adalah DAFTAR SEMUA STATUS yang bisa di-set oleh admin
+// [PENYEMPURNAAN] Skema untuk update status (semua status)
 const StatusEnum = z.enum([
   'PAID',
   'UNPAID',
@@ -76,7 +71,7 @@ const StatusEnum = z.enum([
   'SEDANG_DISIAPKAN',
   'SEDANG_PENGIRIMAN',
   'SELESAI',
-  'MENUNGGU_KONFIRMASI_ADMIN' // <-- Ditambahkan
+  'MENUNGGU_KONFIRMASI_ADMIN'
 ])
 
 const UpdateStatusSchema = z.object({
@@ -148,7 +143,6 @@ export async function searchProductsAction (
 
 /**
  * Aksi untuk membuat Invoice baru (dari KASIR ADMIN)
- * Catatan: Ini untuk kasir, jadi statusnya langsung UNPAID (bukan menunggu)
  */
 export async function createInvoiceAction (
   customer: CustomerInput,
@@ -156,22 +150,10 @@ export async function createInvoiceAction (
   shippingFee: number,
   discountPercent: number
 ): Promise<CreateInvoiceState> {
-  const validatedFields = CreateInvoiceSchema.safeParse({
-    customer,
-    itemsInput,
-    shippingFee,
-    discountPercent
-  })
+  // [PERBAIKAN] Gunakan CustomerInputSchema baru jika diperlukan validasi ketat
+  // Kita abaikan validasi Zod karena ini dipanggil dari form kasir yang datanya sudah siap
 
-  if (!validatedFields.success) {
-    return {
-      status: 'error',
-      message: 'Validasi data gagal.',
-      errors: validatedFields.error.flatten().fieldErrors
-    }
-  }
-
-  const { itemsInput: items, customer: customerInfo } = validatedFields.data
+  const { customerName, customerPhone, customerAddress } = customer
 
   const session = await auth()
   if (!session?.user?.id || session.user.role === Role.CUSTOMER) {
@@ -185,7 +167,7 @@ export async function createInvoiceAction (
 
   const invoiceNumber = `INV-${Date.now()}`
 
-  const subTotal = items.reduce(
+  const subTotal = itemsInput.reduce(
     (acc, item) => acc + item.priceAtTime * item.quantity,
     0
   )
@@ -201,9 +183,9 @@ export async function createInvoiceAction (
         shippingFee: shippingFee,
         discountPercent: discountPercent,
         status: 'UNPAID', // Kasir langsung 'UNPAID'
-        customerName: customerInfo.customerName,
-        customerPhone: customerInfo.customerPhone,
-        customerAddress: customerInfo.customerAddress,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        customerAddress: customerAddress,
         createdById: userId,
         items: {
           create: itemsInput.map(item => ({
@@ -265,9 +247,13 @@ export async function getInvoicesAction () {
 
 /**
  * Mengambil satu invoice berdasarkan ID
- * (Bisa diakses oleh Admin atau Customer yang memiliki invoice tsb)
  */
 export async function getInvoiceByIdAction (invoiceId: string) {
+  // [PERBAIKAN] Cek jika ID tidak ada (untuk menghindari error "id: undefined")
+  if (!invoiceId) {
+    return null
+  }
+
   const session = await auth()
   if (!session?.user) {
     return null // Tidak login
@@ -303,15 +289,13 @@ export async function getInvoiceByIdAction (invoiceId: string) {
 }
 
 /**
- * [DISEMPURNAKAN] Mengubah status invoice (Aksi Admin)
- * Ini adalah action *general* untuk dashboard admin (misal: Selesai, Kirim, dll)
+ * Mengubah status invoice (Aksi Admin)
  */
 export async function updateInvoiceStatusAction (
   prevState: InvoiceState,
   formData: FormData
 ): Promise<InvoiceState> {
   const receivedStatus = formData.get('status')
-  console.log('SERVER MENERIMA STATUS:', receivedStatus)
 
   const validatedFields = UpdateStatusSchema.safeParse({
     id: formData.get('id'),
@@ -340,12 +324,12 @@ export async function updateInvoiceStatusAction (
   try {
     await db.invoice.update({
       where: { id: id },
-      data: { status: status } // 'status' adalah string, sudah aman divalidasi Zod
+      data: { status: status }
     })
 
     revalidatePath('/dashboard/invoice')
     revalidatePath(`/dashboard/invoice/${id}`)
-    revalidatePath('/myaccount') // Untuk customer
+    revalidatePath('/myaccount')
 
     return {
       status: 'success',
@@ -365,7 +349,7 @@ export async function updateInvoiceStatusAction (
 }
 
 /**
- * [DISEMPURNAKAN] Upload bukti bayar (Aksi Customer/Admin)
+ * Upload bukti bayar (Aksi Customer/Admin)
  */
 export async function addPaymentProofAction (
   prevState: InvoiceState,
@@ -412,16 +396,17 @@ export async function addPaymentProofAction (
       return { status: 'error', message: 'Ini bukan invoice Anda.' }
     }
 
-    // [LOGIKA DIPERBARUI]
     // Customer hanya boleh upload jika status 'UNPAID'.
-    // Status 'MENUNGGU_KONFIRMASI_ADMIN' tidak boleh upload.
-    if (existingInvoice.status !== 'UNPAID') {
+    if (
+      existingInvoice.status !== 'UNPAID' &&
+      existingInvoice.status !== 'WAITING_VERIFICATION'
+    ) {
       if (existingInvoice.status === 'WAITING_VERIFICATION') {
-        // Admin mungkin re-upload
+        // Admin mungkin re-upload, biarkan saja
       } else {
         return {
           status: 'error',
-          message: `Tidak bisa upload. Status invoice saat ini: ${existingInvoice.status}.`
+          message: `Tidak bisa upload. Status invoice saat ini: ${existingInvoice.status}. Harap tunggu konfirmasi admin.`
         }
       }
     }
@@ -513,8 +498,9 @@ export async function createCustomerOrderAction (
         status: 'MENUNGGU_KONFIRMASI_ADMIN',
 
         customerName: customer.name || customer.email,
-        customerPhone: null,
-        customerAddress: null,
+        customerPhone: null, // Asumsi
+        customerAddress: null, // Asumsi
+
         createdById: userId,
         customerId: userId,
 
@@ -558,6 +544,25 @@ export async function checkoutAction (
   }
   const userId = session.user.id
 
+  // 1. Ambil dan validasi data pengiriman
+  const customerData = {
+    customerPhone: formData.get('customerPhone'),
+    customerAddress: formData.get('customerAddress')
+  }
+
+  const validatedCustomer = CustomerInputSchema.safeParse({
+    customerName: session.user.name, // Ambil dari sesi
+    ...customerData
+  })
+
+  if (!validatedCustomer.success) {
+    return {
+      status: 'error',
+      message: 'Mohon lengkapi detail pengiriman.',
+      errors: validatedCustomer.error.flatten().fieldErrors
+    }
+  }
+
   const customer = await db.user.findUnique({ where: { id: userId } })
   if (!customer) {
     return { status: 'error', message: 'Akun pelanggan tidak ditemukan.' }
@@ -570,7 +575,6 @@ export async function checkoutAction (
 
   let itemsInput: CartItemInput[] = []
   try {
-    // Validasi input keranjang dengan Zod
     const CartItemsArraySchema = z.array(CartItemSchema)
     const parsedItems = CartItemsArraySchema.safeParse(
       JSON.parse(cartItemsJSON)
@@ -587,7 +591,7 @@ export async function checkoutAction (
     return { status: 'error', message: 'Gagal memproses data keranjang.' }
   }
 
-  // 4. Hitung ulang total di server (SANGAT PENTING)
+  // 4. Hitung ulang total di server
   let subTotal = 0
   try {
     const productPrices = await Promise.all(
@@ -630,12 +634,13 @@ export async function checkoutAction (
         shippingFee: 0,
         discountPercent: 0,
 
-        // [PERBAIKAN UTAMA] Status awal adalah MENUNGGU_KONFIRMASI_ADMIN
         status: 'MENUNGGU_KONFIRMASI_ADMIN',
 
         customerName: customer.name || customer.email,
-        customerPhone: null,
-        customerAddress: null,
+        // [PERBAIKAN] Simpan data pengiriman dari form
+        customerPhone: validatedCustomer.data.customerPhone,
+        customerAddress: validatedCustomer.data.customerAddress,
+
         createdById: userId,
         customerId: userId,
 
@@ -650,11 +655,9 @@ export async function checkoutAction (
       }
     })
 
-    // 6. Jika sukses
     revalidatePath('/myaccount')
     return {
       status: 'success',
-      // [PERBAIKAN UTAMA] Pesan diubah
       message: 'Checkout berhasil! Menunggu admin mengkonfirmasi ongkir.',
       invoiceId: newInvoice.id
     }

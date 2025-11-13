@@ -1,13 +1,13 @@
 "use client";
 
 import { Invoice, InvoiceItem, SossilverProduct } from "@prisma/client";
-import { CustomerUploadForm } from "./CustomerUploadForm"; // Komponen baru untuk upload
-// Pastikan path ke utils Anda benar
+import { CustomerUploadForm } from "./CustomerUploadForm";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import Link from "next/link";
 
-// Tipe data lengkap yang dibutuhkan oleh komponen ini
-// Ekspor tipe ini agar TransactionTabs.tsx bisa menggunakannya
 export type FullInvoice = Invoice & {
   items: (InvoiceItem & {
     product: SossilverProduct;
@@ -19,9 +19,11 @@ interface InvoiceCardProps {
 }
 
 export function InvoiceCard({ invoice }: InvoiceCardProps) {
+  const canDownload = invoice.status !== "MENUNGGU_KONFIRMASI_ADMIN";
+
   return (
     <div className="p-4 border rounded-lg shadow-sm bg-white dark:bg-gray-800">
-      {/* Bagian Atas: Info & Total */}
+      {/* Bagian Atas: Info, Total, dan Tombol Download */}
       <div className="flex flex-col sm:flex-row justify-between items-start">
         <div>
           <h3 className="font-bold text-lg text-gray-900 dark:text-white">
@@ -30,13 +32,21 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Tanggal Order: {formatDate(invoice.createdAt)}
           </p>
+
+          {canDownload && (
+            <Button asChild variant="outline" size="sm" className="mt-2">
+              <Link href={`/invoice/${invoice.id}`} target="_blank">
+                <Download className="w-4 h-4 mr-2" />
+                Download Invoice
+              </Link>
+            </Button>
+          )}
         </div>
         <div className="text-left sm:text-right mt-2 sm:mt-0">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Total Harga
           </p>
           <p className="font-bold text-lg text-gray-900 dark:text-white">
-            {/* Tampilkan "Menunggu" jika statusnya masih menunggu konfirmasi admin */}
             {invoice.status === "MENUNGGU_KONFIRMASI_ADMIN"
               ? `(Menunggu Konfirmasi)`
               : formatCurrency(invoice.totalAmount)}
@@ -72,11 +82,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
             Total Tagihan: {formatCurrency(invoice.totalAmount)}
           </p>
           <hr className="my-3 border-red-200" />
-          {/* Tampilkan form upload di sini */}
-          <CustomerUploadForm
-            invoiceId={invoice.id}
-            // [PERBAIKAN] 'currentProofUrl' sudah dihapus
-          />
+          <CustomerUploadForm invoiceId={invoice.id} />
         </div>
       )}
 
@@ -90,7 +96,6 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
             Bukti bayar Anda sudah kami terima dan akan segera diperiksa oleh
             admin.
           </p>
-          {/* Tampilkan bukti yang sudah diupload */}
           {invoice.paymentProofUrl && (
             <div className="mt-2">
               <a
@@ -138,6 +143,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
       {invoice.status === "CANCELLED" && (
         <div className="p-3 bg-gray-100 border border-gray-300 rounded-md">
           <p className="font-semibold text-gray-700">Pesanan Dibatalkan</p>
+          {/* [PERBAIKAN] Mengganti </D> menjadi </p> */}
         </div>
       )}
       {/* --- AKHIR LOGIKA STATUS --- */}
