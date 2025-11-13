@@ -355,101 +355,184 @@ export async function addPaymentProofAction (
   prevState: InvoiceState,
   formData: FormData
 ): Promise<InvoiceState> {
-  const validatedFields = AddProofSchema.safeParse({
-    id: formData.get('id'),
-    file: formData.get('file')
-  })
-
-  if (!validatedFields.success) {
-    return {
-      status: 'error',
-      message: 'Validasi gagal.',
-      errors: validatedFields.error.flatten().fieldErrors
-    }
-  }
-
-  const { id: invoiceId, file } = validatedFields.data
-
-  const session = await auth()
-  if (!session?.user) {
-    return { status: 'error', message: 'Anda harus login.' }
-  }
-
-  const fileExtension = file.name.split('.').pop()
-  const uniqueFileName = `payment-proof-${invoiceId}-${Date.now()}.${fileExtension}`
-
   try {
+    // 1. Validasi input
+    const validatedFields = AddProofSchema.safeParse({
+      id: formData.get('id'),
+      file: formData.get('file')
+    })
+
+    if (!validatedFields.success) {
+      console.error('❌ Validation failed:', validatedFields.error.flatten())
+      return {
+        status: 'error',
+        message: 'Validasi gagal.',
+        errors: validatedFields.error.flatten().fieldErrors
+      }
+    }
+
+    const { id: invoiceId, file } = validatedFields.data
+
+    // 2. Cek authentication
+    const session = await auth()
+    if (!session?.user) {
+      console.error('❌ No session/user found')
+      return { status: 'error', message: 'Anda harus login.' }
+    }
+
+    console.log('📝 Upload attempt:', {
+      invoiceId,
+      userId: session.user.id,
+      userRole: session.user.role,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    })
+
+    // 3. Validasi file
+    if (file.size === 0) {
+      return { status: 'error', message: 'File kosong, tidak bisa diupload.' }
+    }
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      return {
+        status: 'error',
+        message: `File terlalu besar. Maksimal 5MB, file Anda: ${(
+          file.size /
+          1024 /
+          1024
+        ).toFixed(2)}MB`
+      }
+    }
+
+    // 4. Generate unique filename
+    const fileExtension = file.name.split('.').pop()
+    const uniqueFileName = `payment-proof-${invoiceId}-${Date.now()}.${fileExtension}`
+    console.log('📄 Generated filename:', uniqueFileName)
+
+    // 5. Cek invoice existence
     const existingInvoice = await db.invoice.findUnique({
       where: { id: invoiceId },
       select: { paymentProofUrl: true, status: true, customerId: true }
     })
 
     if (!existingInvoice) {
+      console.error('❌ Invoice not found:', invoiceId)
       return { status: 'error', message: 'Invoice tidak ditemukan.' }
     }
 
-    // Cek Otorisasi: Admin Boleh, Customer hanya milik sendiri
+    console.log('✅ Invoice found:', {
+      invoiceId,
+      status: existingInvoice.status,
+      customerId: existingInvoice.customerId,
+      hasPaymentProof: !!existingInvoice.paymentProofUrl
+    })
+
+    // 6. Cek otorisasi: Admin boleh, Customer hanya milik sendiri
     if (
       session.user.role === Role.CUSTOMER &&
       existingInvoice.customerId !== session.user.id
     ) {
+      console.error('❌ Unauthorized:', {
+        userId: session.user.id,
+        customerId: existingInvoice.customerId
+      })
       return { status: 'error', message: 'Ini bukan invoice Anda.' }
     }
 
-    // Customer hanya boleh upload jika status 'UNPAID'.
-    if (
-      existingInvoice.status !== 'UNPAID' &&
-      existingInvoice.status !== 'WAITING_VERIFICATION'
-    ) {
-      if (existingInvoice.status === 'WAITING_VERIFICATION') {
-        // Admin mungkin re-upload, biarkan saja
-      } else {
-        return {
-          status: 'error',
-          message: `Tidak bisa upload. Status invoice saat ini: ${existingInvoice.status}. Harap tunggu konfirmasi admin.`
-        }
+    // 7. Cek status invoice
+    const allowedStatuses = ['UNPAID', 'WAITING_VERIFICATION']
+    if (!allowedStatuses.includes(existingInvoice.status)) {
+      console.error('❌ Invalid invoice status:', existingInvoice.status)
+      return {
+        status: 'error',
+        message: `Tidak bisa upload. Status invoice saat ini: ${existingInvoice.status}. Harap tunggu konfirmasi admin.`
       }
     }
 
-    // Hapus file lama jika ada
+    // 8. Hapus file lama jika ada
     if (existingInvoice?.paymentProofUrl) {
       try {
+        console.log('🗑️ Deleting old file:', existingInvoice.paymentProofUrl)
         await del(existingInvoice.paymentProofUrl)
+        console.log('✅ Old file deleted successfully')
       } catch (delError) {
-        console.warn('Gagal menghapus file lama:', delError)
+        console.warn('⚠️ Failed to delete old file:', delError)
+        // Jangan return error, lanjut upload file baru
       }
     }
 
-    // Upload file baru
+    // 9. Upload file ke Vercel Blob
+    console.log('🚀 Starting upload to Vercel Blob...')
+    console.log('- BLOB token exists:', !!process.env.BLOB_READ_WRITE_TOKEN)
+    console.log('- NODE_ENV:', process.env.NODE_ENV)
+
     const blob = await put(uniqueFileName, file, {
       access: 'public'
     })
 
-    // Update DB
-    await db.invoice.update({
+    console.log('✅ File uploaded successfully:', blob.url)
+
+    // 10. Update database
+    console.log('💾 Updating invoice in database...')
+    const updatedInvoice = await db.invoice.update({
       where: { id: invoiceId },
       data: {
         paymentProofUrl: blob.url,
-        status: 'WAITING_VERIFICATION' // Otomatis update status
+        status: 'WAITING_VERIFICATION'
       }
     })
 
+    console.log('✅ Invoice updated:', {
+      invoiceId: updatedInvoice.id,
+      paymentProofUrl: updatedInvoice.paymentProofUrl,
+      status: updatedInvoice.status
+    })
+
+    // 11. Revalidate paths
+    console.log('🔄 Revalidating paths...')
     revalidatePath(`/dashboard/invoice/${invoiceId}`)
     revalidatePath('/dashboard/invoice')
     revalidatePath('/myaccount')
+    console.log('✅ Paths revalidated')
 
     return {
       status: 'success',
       message: 'Bukti bayar berhasil diupload.'
     }
   } catch (error) {
-    console.error('Error uploading payment proof:', error)
+    // 12. Comprehensive error handling
+    console.error('❌ ERROR in addPaymentProofAction:', {
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      fullError: error
+    })
+
+    // Specific error messages
+    let errorMessage = 'Gagal mengupload file karena kesalahan server.'
+
+    if (error instanceof Error) {
+      if (error.message.includes('BLOB_READ_WRITE_TOKEN')) {
+        errorMessage = 'Konfigurasi server tidak lengkap (BLOB token missing).'
+      } else if (error.message.includes('timeout')) {
+        errorMessage =
+          'Upload timeout. Coba lagi atau gunakan file yang lebih kecil.'
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Masalah koneksi. Periksa internet Anda dan coba lagi.'
+      } else if (error.message.includes('unauthorized')) {
+        errorMessage = 'Akses ditolak. Token mungkin expired atau invalid.'
+      }
+    }
+
     return {
       status: 'error',
-      message: 'Gagal mengupload file karena kesalahan server.'
+      message: errorMessage
     }
   }
 }
+
 
 /**
  * ==========================================================
