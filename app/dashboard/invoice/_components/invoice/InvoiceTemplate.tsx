@@ -1,8 +1,11 @@
-import { Invoice, InvoiceItem, SossilverProduct } from "@prisma/client";
-// Pastikan path ke utils Anda benar
-import { formatCurrency, formatDate } from "@/lib/utils";
+"use client";
 
-// Ini adalah tipe data lengkap yang dibutuhkan templat
+import { Invoice, InvoiceItem, SossilverProduct } from "@prisma/client";
+import Image from "next/image";
+// Menggunakan utilitas yang sudah kita buat
+import { formatCurrency, formatDate } from "@/lib/utils"; 
+
+// Definisikan tipe data lengkap yang akan diterima
 export type FullInvoice = Invoice & {
   items: (InvoiceItem & {
     product: SossilverProduct;
@@ -13,30 +16,40 @@ interface InvoiceTemplateProps {
   invoice: FullInvoice;
 }
 
+// Data Bank (Dapat dipindahkan ke file konfigurasi atau database)
+const bankDetails = {
+  bank: "Bank BCA",
+  accountName: "NASRULHADI",
+  accountNumber: "4789999993",
+};
+
 /**
- * Komponen ini HANYA berisi HTML untuk invoice,
- * sehingga bisa digunakan di halaman admin dan halaman download customer.
+ * Komponen Templat Invoice (Digunakan untuk Tampilan dan Cetak/PDF)
  */
 export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
-  // Hitung diskon (subTotal dan discountPercent bisa jadi float)
+  // Hitung diskon yang sudah diterapkan
   const discountAmount = (invoice.subTotal * invoice.discountPercent) / 100;
-
+  
   return (
+    // [PERBAIKAN CSS] Styling untuk mencetak (print:w-full)
     <div
-      id="invoice-pdf-content" // ID ini penting untuk tombol PDF
-      className="bg-white p-8 rounded-lg shadow-lg"
+      id="invoice-pdf-content"
+      className="bg-white p-6 sm:p-8 rounded-lg shadow-lg print:shadow-none print:p-0 print:m-0 print:w-full"
       style={{ fontFamily: "Arial, sans-serif" }}
     >
-      {/* ... (Header, Info Perusahaan, Info Customer, dll - TIDAK BERUBAH) ... */}
+      {/* Header with Logo and Company Info */}
       <div className="flex justify-between items-start mb-8">
         <div className="flex items-start gap-4">
+          {/* Logo (menggunakan <img> standar untuk PDF) */}
           <div className="w-24 h-24 flex items-center justify-center">
             <img
-              src="/logosos-baru.png"
+              src="/logosos-baru.png" // Pastikan path logo ini benar
               alt="Logo"
               className="w-full h-full object-contain"
             />
           </div>
+
+          {/* Company Info */}
           <div className="text-sm leading-relaxed">
             <p className="font-bold text-gray-800">SoS Silver</p>
             <p className="text-gray-600">
@@ -48,11 +61,16 @@ export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
             <p className="text-gray-600">Kabupaten Bogor, Jawa Barat 16820</p>
           </div>
         </div>
+
+        {/* Invoice Title */}
         <div>
           <h1 className="text-4xl font-bold text-blue-500 mb-2">INVOICE</h1>
         </div>
       </div>
-      <div className="flex justify-between mb-8">
+
+      {/* Shipping Address and Invoice Info (Mobile: Berjejer Vertikal) */}
+      <div className="flex flex-col sm:flex-row justify-between mb-8 gap-4 sm:gap-0">
+        {/* Shipping Address */}
         <div className="text-sm">
           <p className="font-bold text-gray-800 mb-2">Shipping Address:</p>
           <p className="text-gray-600">{invoice.customerName}</p>
@@ -61,7 +79,9 @@ export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
           </p>
           <p className="text-gray-600">{invoice.customerPhone || ""}</p>
         </div>
-        <div className="text-sm text-right">
+
+        {/* Invoice Info */}
+        <div className="text-sm sm:text-right">
           <div className="mb-1">
             <span className="text-gray-600">Invoice Date: </span>
             <span className="font-semibold">
@@ -71,51 +91,54 @@ export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
           <div className="mb-1">
             <span className="text-gray-600">Invoice No.: </span>
             <span className="font-semibold">
-              {invoice.invoiceNumber.substring(0, 8)}
+              {invoice.invoiceNumber || invoice.id.substring(0, 8)}
             </span>
           </div>
           <div className="mb-1">
-            <span className="text-gray-600">Order No.: </span>
-            <span className="font-semibold">{invoice.id.substring(0, 4)}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Order Date: </span>
+            <span className="text-gray-600">Order ID: </span>
             <span className="font-semibold">
-              {formatDate(invoice.createdAt)}
+              {invoice.id.substring(0, 8)}
             </span>
+          </div>
+          <div className="mb-1">
+            <span className="text-gray-600">Status: </span>
+            <span className="font-bold text-red-500">{invoice.status}</span>
           </div>
         </div>
       </div>
 
-      {/* Items Table (TIDAK BERUBAH) */}
-      <div className="mb-8">
-        <table className="w-full border-collapse">
+      {/* Items Table (Dibuat responsif) */}
+      <div className="mb-8 overflow-x-auto">
+        <table className="min-w-full border-collapse">
           <thead>
             <tr className="border-t-2 border-b-2 border-black">
-              <th className="text-left py-3 px-2 text-sm font-bold text-gray-800">
-                S.NO
+              {/* [PERBAIKAN LEBAR KOLOM] Total 100% */}
+              <th className="text-left py-3 px-2 text-sm font-bold text-gray-800 w-[5%]">
+                NO
               </th>
-              <th className="text-left py-3 px-2 text-sm font-bold text-gray-800">
-                PRODUCT
+              <th className="text-left py-3 px-2 text-sm font-bold text-gray-800 w-[40%]">
+                PRODUK
               </th>
-              <th className="text-center py-3 px-2 text-sm font-bold text-gray-800">
+              <th className="text-center py-3 px-2 text-sm font-bold text-gray-800 w-[10%]">
                 GRAMASI
               </th>
-              <th className="text-center py-3 px-2 text-sm font-bold text-gray-800">
-                QUANTITY
+              <th className="text-center py-3 px-2 text-sm font-bold text-gray-800 w-[10%]">
+                QTY
               </th>
-              <th className="text-right py-3 px-2 text-sm font-bold text-gray-800">
-                PRICE
+              <th className="text-right py-3 px-2 text-sm font-bold text-gray-800 w-[15%]">
+                HARGA SATUAN
               </th>
-              <th className="text-right py-3 px-2 text-sm font-bold text-gray-800">
-                TOTAL PRICE
+              <th className="text-right py-3 px-2 text-sm font-bold text-gray-800 w-[20%]">
+                TOTAL HARGA
               </th>
             </tr>
           </thead>
           <tbody>
             {invoice.items.map((item, index) => (
               <tr key={item.id} className="border-b border-gray-200">
-                <td className="py-3 px-2 text-sm text-gray-700">{index + 1}</td>
+                <td className="py-3 px-2 text-sm text-gray-700">
+                  {index + 1}
+                </td>
                 <td className="py-3 px-2 text-sm text-gray-700">
                   {item.product.nama}
                 </td>
@@ -137,37 +160,24 @@ export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
         </table>
       </div>
 
-      {/* === [PERBAIKAN] Info Pembayaran & Total === */}
-      <div className="flex justify-between items-start mb-8">
-        {/* [PERBAIKAN BARU] Sisi Kiri: Info Pembayaran */}
-        <div className="text-sm text-gray-700">
-          <p className="font-bold text-gray-800 mb-2">Informasi Pembayaran:</p>
-          <p>Silakan lakukan pembayaran ke rekening berikut:</p>
-          <div className="mt-2">
-            <p className="font-semibold">Bank BCA</p>
-            <p>
-              No. Rek: <span className="font-bold">4789999993</span>
-            </p>
-            <p>
-              A/N: <span className="font-bold">NASRULHADI</span>
-            </p>
-          </div>
-          {/* Anda bisa tambahkan bank lain di sini */}
-          {/* <div className="mt-2">
-            <p className="font-semibold">Bank Mandiri</p>
-            <p>No. Rek: <span className="font-bold">098 765 4321</span></p>
-            <p>A/N: <span className="font-bold">PT SOSSILVER INDONESIA</span></p>
-          </div> */}
-          <p className="mt-4 text-xs text-gray-500">
-            *Mohon upload bukti bayar di halaman Akun Saya
-            <br />
-            setelah melakukan pembayaran.
+      {/* === BAGIAN TOTAL & BANK (Responsif & Cetak-Aman) === */}
+      <div className="flex flex-col sm:flex-row justify-between">
+        
+        {/* Kolom Kiri: Informasi Bank */}
+        <div className="w-full sm:w-1/2 text-sm mb-6 sm:mb-0 pr-4">
+          <p className="font-bold text-gray-800 mb-2 border-b border-gray-300 pb-1">
+            Informasi Pembayaran
+          </p>
+          <p className="text-gray-700 font-semibold">{bankDetails.bank}</p>
+          <p className="text-gray-600">A/N: {bankDetails.accountName}</p>
+          <p className="text-gray-600 font-bold text-lg">
+            No. Rek: {bankDetails.accountNumber}
           </p>
         </div>
 
-        {/* Sisi Kanan: Total (YANG SUDAH ADA) */}
-        <div className="w-72">
-          {/* 1. Subtotal (dari database) */}
+        {/* Kolom Kanan: Detail Total */}
+        <div className="w-full sm:w-72">
+          {/* 1. Subtotal */}
           <div className="flex justify-between py-2 text-sm">
             <span className="text-gray-700">Subtotal</span>
             <span className="text-gray-700">
@@ -175,7 +185,7 @@ export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
             </span>
           </div>
 
-          {/* 2. Biaya Kirim (Baru) */}
+          {/* 2. Biaya Kirim */}
           <div className="flex justify-between py-2 text-sm">
             <span className="text-gray-700">Biaya Kirim</span>
             <span className="text-gray-700">
@@ -183,7 +193,7 @@ export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
             </span>
           </div>
 
-          {/* 3. Diskon (Baru, hanya tampil jika ada) */}
+          {/* 3. Diskon (hanya tampil jika ada) */}
           {invoice.discountPercent > 0 && (
             <div className="flex justify-between py-2 text-sm text-red-600">
               <span>Diskon ({invoice.discountPercent}%)</span>
@@ -191,9 +201,9 @@ export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
             </div>
           )}
 
-          {/* 4. Total (dari database) */}
+          {/* 4. Total Akhir */}
           <div className="flex justify-between py-2 border-t border-b-2 border-black text-base font-bold">
-            <span className="text-gray-800">Total</span>
+            <span className="text-gray-800">TOTAL TAGIHAN</span>
             <span className="text-gray-800">
               {formatCurrency(invoice.totalAmount)}
             </span>
@@ -201,6 +211,16 @@ export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
         </div>
       </div>
       {/* ====================================== */}
+
+      {/* Tanda Tangan */}
+      {/* <div className="mt-12 flex justify-end">
+        <div className="text-center">
+            <p className="mb-12 text-sm">Hormat Kami,</p>
+            <p className="font-semibold border-t border-black pt-1">
+                Admin SoS Silver
+            </p>
+        </div>
+      </div> */}
     </div>
   );
 }

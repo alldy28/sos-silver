@@ -1,10 +1,10 @@
-// app/dashboard/invoice/_components/GeneratePdfButton.tsx
 "use client";
 
 import { useState } from "react";
 import { Loader2, Printer } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { Button } from "@/components/ui/button";
 
 export default function GeneratePdfButton() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -14,7 +14,8 @@ export default function GeneratePdfButton() {
   const getInvoiceIdForFilename = () => {
     if (typeof window === "undefined") return "invoice";
     const pathParts = window.location.pathname.split("/");
-    return pathParts[pathParts.length - 1] || "invoice";
+    const id = pathParts[pathParts.length - 1];
+    return id.substring(0, 8) || "invoice"; // Ambil 8 karakter
   };
 
   const handleGeneratePdf = async () => {
@@ -26,13 +27,24 @@ export default function GeneratePdfButton() {
 
     setIsGenerating(true);
 
+    // [PERBAIKAN] Simpan style asli untuk dikembalikan nanti
+    const originalWidth = input.style.width;
+    const originalMaxWidth = input.style.maxWidth;
+
     try {
+      // [PERBAIKAN] Paksa elemen untuk dirender pada lebar desktop (1200px)
+      // Ini memastikan tabel (yang ada di dalamnya) tidak terpotong saat di-capture
+      input.style.width = "1200px";
+      input.style.maxWidth = "1200px";
+
       // 1. Capture element dengan html2canvas
       const canvas = await html2canvas(input, {
-        scale: 3, // High quality
+        scale: 2, // Skala 2 sudah cukup
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
+        // [PERBAIKAN] Beri tahu html2canvas untuk menggunakan lebar yang baru kita set
+        width: 1200,
       });
 
       // 2. Get image data
@@ -65,27 +77,31 @@ export default function GeneratePdfButton() {
       console.error("Error generating PDF:", err);
       alert("Gagal membuat PDF. Silakan coba lagi.");
     } finally {
+      // [PERBAIKAN] Kembalikan style elemen ke semula
+      input.style.width = originalWidth;
+      input.style.maxWidth = originalMaxWidth;
       setIsGenerating(false);
     }
   };
 
   return (
-    <button
+    <Button
       onClick={handleGeneratePdf}
       disabled={isGenerating}
-      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
+      variant="default"
+      className="bg-blue-600 hover:bg-blue-700 shadow-md print:hidden"
     >
       {isGenerating ? (
         <>
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <Loader2 className="w-5 h-5 animate-spin mr-2" />
           <span>Membuat PDF...</span>
         </>
       ) : (
         <>
-          <Printer className="w-5 h-5" />
+          <Printer className="w-5 h-5 mr-2" />
           <span>Cetak PDF</span>
         </>
       )}
-    </button>
+    </Button>
   );
 }
