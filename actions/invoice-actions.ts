@@ -579,10 +579,8 @@ export async function addPaymentProofAction(
     console.log('🚀 Starting upload to Vercel Blob...')
     console.log('- NODE_ENV:', process.env.NODE_ENV)
 
-    const buffer = await file.arrayBuffer()
-    const blob = await put(uniqueFileName, buffer, {
+    const blob = await put(uniqueFileName, file, {
       access: 'public',
-      contentType: file.type
     })
 
     console.log('✅ File uploaded successfully:', blob.url)
