@@ -212,7 +212,7 @@ export function InvoiceTemplate({ invoice }: InvoiceTemplateProps) {
       </div>
       {/* ====================================== */}
 
-      {/* Tanda Tangan */}
+      {/* Tanda Tangan Admin */}
       {/* <div className="mt-12 flex justify-end">
         <div className="text-center">
             <p className="mb-12 text-sm">Hormat Kami,</p>
