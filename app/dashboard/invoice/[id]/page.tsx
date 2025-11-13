@@ -1,15 +1,9 @@
-// app/dashboard/invoice/[id]/page.tsx
-
 import { getInvoiceByIdAction } from "../../../../actions/invoice-actions";
 import { notFound } from "next/navigation";
-// [PERBAIKAN] Hapus impor-impor ini karena kita akan gunakan wrapper
-// import UpdateStatusButton from "../_components/UpdateStatusButton";
+// [PERBAIKAN PATH] Path yang benar adalah '../_components'
 import GeneratePdfButton from "../_components/GeneratePdfButton";
-// import UploadPaymentProof from "../_components/UploadPaymentProof";
-import Image from "next/image"; // 'Image' masih digunakan, jadi jangan dihapus
-
-// [PERBAIKAN] Impor komponen 'wrapper' yang berisi semua logika aksi
 import { InvoiceActionsClient } from "../_components/InvoiceActionsClient";
+import { ConfirmPriceForm } from "../_components/ConfirmPriceForm";
 
 // --- Helper Functions ---
 const formatDate = (date: Date) =>
@@ -19,27 +13,24 @@ const formatDate = (date: Date) =>
     year: "numeric",
   });
 
-const formatCurrency = (amount: number) =>
-  `Rp${amount.toLocaleString("id-ID")}`;
+const formatCurrency = (amount: number | bigint) => {
+  // Konversi BigInt ke Number jika perlu (hati-hati dengan angka besar)
+  const numberAmount = typeof amount === "bigint" ? Number(amount) : amount;
+  return `Rp${numberAmount.toLocaleString("id-ID")}`;
+};
 
 export default async function InvoiceDetailPage({
   params,
 }: {
-  // [PERBAIKAN] Kembalikan 'params' menjadi 'Promise'
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  // [PERBAIKAN] Kita HARUS 'await' params terlebih dahulu
-  const awaitedParams = await params;
-
-  // [PERBAIKAN] Gunakan 'awaitedParams.id'
-  const invoice = await getInvoiceByIdAction(awaitedParams.id);
+  const invoice = await getInvoiceByIdAction(params.id);
 
   if (!invoice) {
     notFound();
   }
 
-  // --- PENYESUAIAN ---
-  // Kode ini sudah benar
+  // Hitung diskon (subTotal dan discountPercent bisa jadi float)
   const discountAmount = (invoice.subTotal * invoice.discountPercent) / 100;
 
   return (
@@ -53,11 +44,8 @@ export default async function InvoiceDetailPage({
         {/* Header with Logo and Company Info */}
         <div className="flex justify-between items-start mb-8">
           <div className="flex items-start gap-4">
-            {/* Logo */}
+            {/* Logo (menggunakan <img> standar untuk PDF) */}
             <div className="w-24 h-24 flex items-center justify-center">
-              {/* [PERBAIKAN] Menggunakan tag <img> standar untuk PDF
-                  karena <Image> Next.js mungkin tidak render di html2canvas
-              */}
               <img
                 src="/logosos-baru.png" // Pastikan path logo ini benar
                 alt="Logo"
@@ -160,8 +148,6 @@ export default async function InvoiceDetailPage({
                     {item.product.nama}
                   </td>
                   <td className="py-3 px-2 text-sm text-center text-gray-700">
-                    {/* --- PENYESUAIAN --- */}
-                    {/* Menggunakan item.gramasi (saat penjualan), bukan item.product.gramasi */}
                     {item.gramasi ? `${item.gramasi}g` : "-"}
                   </td>
                   <td className="py-3 px-2 text-sm text-center text-gray-700">
@@ -224,15 +210,23 @@ export default async function InvoiceDetailPage({
         <GeneratePdfButton />
       </div>
 
-      {/* [PERBAIKAN] Mengganti panel admin yang rusak 
-          dengan satu komponen 'InvoiceActionsClient' yang fungsional
-      */}
+      {/* [LOGIKA SUDAH BENAR] Logika Kondisional untuk Panel Aksi Admin
+       */}
       <div className="mt-6">
-        <InvoiceActionsClient
-          invoiceId={invoice.id}
-          currentStatus={invoice.status}
-          currentProofUrl={invoice.paymentProofUrl}
-        />
+        {invoice.status === "MENUNGGU_KONFIRMASI_ADMIN" ? (
+          // 1. Jika status MENUNGGU_KONFIRMASI_ADMIN, tampilkan Form Ongkir
+          <ConfirmPriceForm
+            invoiceId={invoice.id}
+            subTotal={invoice.subTotal}
+          />
+        ) : (
+          // 2. Jika status LAIN (UNPAID, PAID, dll), tampilkan Aksi normal
+          <InvoiceActionsClient
+            invoiceId={invoice.id}
+            currentStatus={invoice.status}
+            currentProofUrl={invoice.paymentProofUrl}
+          />
+        )}
       </div>
     </div>
   );

@@ -38,18 +38,18 @@ model User {
   password  String
   name      String?
   
-  // [SEMPURNA] Kolom untuk Role dan Verifikasi
-  role      Role     @default(CUSTOMER)
-  emailVerified     DateTime?
+  // Kolom untuk Role dan Verifikasi
+  role          Role      @default(CUSTOMER)
+  emailVerified DateTime?
   verificationToken String?   @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
 
-  // [SEMPURNA] Relasi 1: Invoice yang DIBUAT oleh Admin
+  // Relasi 1: Invoice yang DIBUAT oleh Admin
   createdInvoices Invoice[] @relation("AdminCreator")
   
-  // [SEMPURNA] Relasi 2: Order yang DIMILIKI oleh Customer
+  // Relasi 2: Order yang DIMILIKI oleh Customer
   orders          Invoice[] @relation("CustomerOwner")
 }
 
@@ -77,25 +77,25 @@ model Invoice {
   customerPhone   String?
   customerAddress String?
   
-  // Data Keuangan (sesuai tabel Anda)
+  // Data Keuangan
   totalAmount     Int
   shippingFee     Int      @default(0)
   subTotal        Float    @default(0)
   discountPercent Float    @default(0)
   
-  // Status (sesuai tabel Anda)
+  // [PERBAIKAN] Menggunakan 'String' sesuai skema Anda
   status          String   @default("UNPAID")
   paymentProofUrl String?
   
-  // Timestamps (sesuai tabel Anda)
+  // Timestamps
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  // [SEMPURNA] Relasi 1: Admin yang membuat
+  // Relasi 1: Admin yang membuat
   createdById     String
   createdBy       User     @relation("AdminCreator", fields: [createdById], references: [id])
   
-  // [SEMPURNA] Relasi 2: Customer yang memiliki (opsional)
+  // Relasi 2: Customer yang memiliki (opsional)
   customerId      String?
   customer        User?    @relation("CustomerOwner", fields: [customerId], references: [id])
 
@@ -104,10 +104,10 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   quantity    Int
   priceAtTime Int
-  gramasi     Float    @default(0) // Sesuai tabel Anda
+  gramasi     Float            @default(0) // Sesuai tabel Anda
 
   // Relasi
   invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
@@ -116,7 +116,11 @@ model InvoiceItem {
   productId String
 }
 
+// Enum untuk Role (Sudah ada di skema Anda)
 enum Role {
   ADMIN
   CUSTOMER
 }
+
+// [DIHAPUS] Enum InvoiceStatus dihapus
+// karena Anda menggunakan 'String'
