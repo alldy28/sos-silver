@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 
 interface UploadPaymentProofProps {
   invoiceId: string;
-  currentProofUrl: string | null;
+  currentProofUrl?: string | null;
 }
 
 // Definisikan initial state untuk hook

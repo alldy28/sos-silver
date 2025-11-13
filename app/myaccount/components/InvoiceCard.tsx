@@ -1,7 +1,7 @@
 "use client";
 
 import { Invoice, InvoiceItem, SossilverProduct } from "@prisma/client";
-import { CustomerUploadForm } from "./CustomerUploadForm";
+import { UploadPaymentProof } from "@/app/dashboard/invoice/_components/UploadPaymentProof";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
             Total Tagihan: {formatCurrency(invoice.totalAmount)}
           </p>
           <hr className="my-3 border-red-200" />
-          <CustomerUploadForm invoiceId={invoice.id} />
+          <UploadPaymentProof invoiceId={invoice.id} />
         </div>
       )}
 
