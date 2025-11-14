@@ -1,18 +1,11 @@
 // app/myaccount/components/InvoiceCard.tsx
 "use client";
 
-// [TAMBAHKAN] Impor useState untuk mengelola state modal
 import { useState } from "react";
 import { Invoice, InvoiceItem, SossilverProduct } from "@prisma/client";
-
-// [HAPUS] Hapus impor komponen dari folder 'dashboard' (Admin)
-// import { UploadPaymentProof } from "@/app/dashboard/invoice/_components/UploadPaymentProof";
-
-// [TAMBAHKAN] Impor modal yang benar untuk 'myaccount' (Customer)
 import { UploadProofModal } from "./UploadProofModal";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-// [TAMBAHKAN] Impor ikon 'UploadCloud' untuk tombol baru
 import { Download, UploadCloud } from "lucide-react";
 import Link from "next/link";
 
@@ -29,13 +22,10 @@ interface InvoiceCardProps {
 export function InvoiceCard({ invoice }: InvoiceCardProps) {
   const canDownload = invoice.status !== "MENUNGGU_KONFIRMASI_ADMIN";
 
-  // [TAMBAHKAN] State untuk mengontrol visibilitas modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // [TAMBAHKAN] Handler untuk menutup modal
   const handleCloseModal = () => setIsModalOpen(false);
 
   return (
-    // [TAMBAHKAN] React Fragment agar bisa me-render modal sebagai sibling
     <>
       <div className="p-4 border rounded-lg shadow-sm bg-white dark:bg-gray-800">
         {/* Bagian Atas: Info, Total, dan Tombol Download */}
@@ -71,7 +61,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
 
         <hr className="my-3" />
 
-        {/* --- INI BAGIAN LOGIKA STATUS ANDA --- */}
+        {/* --- LOGIKA STATUS INVOICE --- */}
 
         {/* Status 1: MENUNGGU_KONFIRMASI_ADMIN */}
         {invoice.status === "MENUNGGU_KONFIRMASI_ADMIN" && (
@@ -98,7 +88,6 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
             </p>
             <hr className="my-3 border-red-200" />
 
-            {/* [GANTI] Ganti komponen admin dengan tombol yang membuka modal customer */}
             <Button onClick={() => setIsModalOpen(true)}>
               <UploadCloud className="w-4 h-4 mr-2" />
               Upload Bukti Pembayaran
@@ -116,6 +105,8 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
               Bukti bayar Anda sudah kami terima dan akan segera diperiksa oleh
               admin.
             </p>
+
+            {/* ✅ FIXED: Gunakan <img> tag biasa instead of Image component */}
             {invoice.paymentProofUrl && (
               <div className="mt-2">
                 <a
@@ -126,8 +117,10 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
                 >
                   <img
                     src={invoice.paymentProofUrl}
-                    alt="Bukti Pembayaran"
-                    className="w-full h-auto rounded"
+                    alt="Bukti bayar"
+                    width={80}
+                    height={80}
+                    className="rounded-md object-cover border hover:opacity-80 w-20 h-20"
                   />
                 </a>
               </div>
@@ -163,12 +156,11 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
             <p className="font-semibold text-gray-700">Pesanan Dibatalkan</p>
           </div>
         )}
+
         {/* --- AKHIR LOGIKA STATUS --- */}
       </div>
 
-      {/* [TAMBAHKAN] Render Modal secara kondisional.
-        Ini akan muncul di atas segalanya saat isModalOpen true.
-      */}
+      {/* Modal untuk upload bukti pembayaran */}
       {isModalOpen && (
         <UploadProofModal invoice={invoice} onClose={handleCloseModal} />
       )}
