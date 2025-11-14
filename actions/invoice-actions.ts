@@ -586,7 +586,7 @@ export async function addPaymentProofAction (
     }
 
     // 10. Generate file URL
-    const fileUrl = `/uploads/payment-proofs/${uniqueFileName}`
+    const fileUrl = `/api/uploads/uploads/payment-proofs/${uniqueFileName}`
     console.log('🔗 Generated file URL:', fileUrl)
 
     // 11. Delete old file jika ada
