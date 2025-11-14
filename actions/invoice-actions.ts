@@ -3,10 +3,13 @@
 import { db } from '@/lib/db'
 import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
-import { put, del } from '@vercel/blob'
 import { z } from 'zod'
 import { SossilverProduct, Role } from '@prisma/client'
 import { redirect } from 'next/navigation'
+
+import fs from 'fs/promises'
+import path from 'path'
+
 
 // --- Tipe Data dari Client ---
 
@@ -450,7 +453,7 @@ export async function updateInvoiceStatusAction(
 /**
  * Upload bukti bayar (Aksi Customer/Admin)
  */
-export async function addPaymentProofAction(
+export async function addPaymentProofAction (
   prevState: InvoiceState,
   formData: FormData
 ): Promise<InvoiceState> {
@@ -553,44 +556,64 @@ export async function addPaymentProofAction(
       }
     }
 
-    // 8. Hapus file lama jika ada
+    // 8. Setup upload directory
+    const uploadDir = path.join(
+      process.cwd(),
+      'public',
+      'uploads',
+      'payment-proofs'
+    )
+
+    try {
+      await fs.mkdir(uploadDir, { recursive: true })
+      console.log('📁 Upload directory ready:', uploadDir)
+    } catch (mkdirError) {
+      console.error('❌ Failed to create upload directory:', mkdirError)
+      return { status: 'error', message: 'Gagal membuat folder upload.' }
+    }
+
+    // 9. Save file ke disk
+    console.log('💾 Saving file to disk...')
+    const filePath = path.join(uploadDir, uniqueFileName)
+
+    try {
+      const buffer = await file.arrayBuffer()
+      await fs.writeFile(filePath, Buffer.from(buffer))
+      console.log('✅ File saved to disk:', filePath)
+    } catch (writeError) {
+      console.error('❌ Failed to write file:', writeError)
+      return { status: 'error', message: 'Gagal menyimpan file.' }
+    }
+
+    // 10. Generate file URL
+    const fileUrl = `/uploads/payment-proofs/${uniqueFileName}`
+    console.log('🔗 Generated file URL:', fileUrl)
+
+    // 11. Delete old file jika ada
     if (existingInvoice?.paymentProofUrl) {
       try {
-        console.log('🗑️ Deleting old file:', existingInvoice.paymentProofUrl)
-        if (existingInvoice.paymentProofUrl.includes('blob.vercelusercontent.com')) {
-          await del(existingInvoice.paymentProofUrl)
+        // Jika URL adalah local path
+        if (existingInvoice.paymentProofUrl.startsWith('/uploads/')) {
+          const oldFilePath = path.join(
+            process.cwd(),
+            'public',
+            existingInvoice.paymentProofUrl
+          )
+          await fs.unlink(oldFilePath)
+          console.log('🗑️ Old file deleted:', oldFilePath)
         }
-        console.log('✅ Old file deleted successfully')
       } catch (delError) {
         console.warn('⚠️ Failed to delete old file:', delError)
+        // Lanjut, jangan stop
       }
     }
 
-    // 9. Cek BLOB token
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('❌ BLOB_READ_WRITE_TOKEN not configured')
-      return {
-        status: 'error',
-        message: 'Konfigurasi server tidak lengkap. Hubungi admin.'
-      }
-    }
-
-    // 10. Upload file ke Vercel Blob
-    console.log('🚀 Starting upload to Vercel Blob...')
-    console.log('- NODE_ENV:', process.env.NODE_ENV)
-
-    const blob = await put(uniqueFileName, file, {
-      access: 'public',
-    })
-
-    console.log('✅ File uploaded successfully:', blob.url)
-
-    // 11. Update database
+    // 12. Update database
     console.log('💾 Updating invoice in database...')
     const updatedInvoice = await db.invoice.update({
       where: { id: invoiceId },
       data: {
-        paymentProofUrl: blob.url,
+        paymentProofUrl: fileUrl,
         status: 'WAITING_VERIFICATION'
       }
     })
@@ -601,7 +624,7 @@ export async function addPaymentProofAction(
       status: updatedInvoice.status
     })
 
-    // 12. Revalidate paths
+    // 13. Revalidate paths
     console.log('🔄 Revalidating paths...')
     revalidatePath(`/dashboard/invoice/${invoiceId}`)
     revalidatePath('/dashboard/invoice')
@@ -622,17 +645,13 @@ export async function addPaymentProofAction(
     let errorMessage = 'Gagal mengupload file karena kesalahan server.'
 
     if (error instanceof Error) {
-      if (error.message.includes('BLOB_READ_WRITE_TOKEN')) {
-        errorMessage = 'Konfigurasi server tidak lengkap (BLOB token missing).'
+      if (error.message.includes('EACCES')) {
+        errorMessage = 'Folder upload tidak memiliki permission. Hubungi admin.'
+      } else if (error.message.includes('ENOENT')) {
+        errorMessage = 'Folder upload tidak ditemukan.'
       } else if (error.message.includes('timeout')) {
         errorMessage =
           'Upload timeout. Coba lagi atau gunakan file yang lebih kecil.'
-      } else if (error.message.includes('network')) {
-        errorMessage = 'Masalah koneksi. Periksa internet Anda dan coba lagi.'
-      } else if (error.message.includes('unauthorized')) {
-        errorMessage = 'Akses ditolak. Token mungkin expired atau invalid.'
-      } else if (error.message.includes('forbidden')) {
-        errorMessage = 'Akses file ditolak. Periksa konfigurasi token.'
       }
     }
 
@@ -642,6 +661,7 @@ export async function addPaymentProofAction(
     }
   }
 }
+
 
 /**
  * Aksi "Beli Cepat" dari sisi PELANGGAN
