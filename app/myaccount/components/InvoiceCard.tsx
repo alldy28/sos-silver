@@ -11,7 +11,6 @@ import { Invoice, InvoiceItem, SossilverProduct } from "@prisma/client";
 // [TAMBAHKAN] Impor modal yang benar untuk 'myaccount' (Customer)
 import { UploadProofModal } from "./UploadProofModal";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 // [TAMBAHKAN] Impor ikon 'UploadCloud' untuk tombol baru
 import { Download, UploadCloud } from "lucide-react";
@@ -125,12 +124,10 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
                   rel="noopener noreferrer"
                   className="inline-block"
                 >
-                  <Image
+                  <img
                     src={invoice.paymentProofUrl}
-                    alt="Bukti bayar"
-                    width={80}
-                    height={80}
-                    className="rounded-md object-cover border hover:opacity-80"
+                    alt="Bukti Pembayaran"
+                    className="w-full h-auto rounded"
                   />
                 </a>
               </div>
