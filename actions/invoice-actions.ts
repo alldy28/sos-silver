@@ -2,16 +2,14 @@
 
 import { db } from '@/lib/db'
 import { auth } from '@/auth'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { z } from 'zod'
 import { SossilverProduct, Role } from '@prisma/client'
 import { redirect } from 'next/navigation'
-
 import fs from 'fs/promises'
 import path from 'path'
 
-
-// --- Tipe Data dari Client ---
+// --- TYPES ---
 
 export interface CartItemInput {
   productId: string
@@ -26,7 +24,6 @@ export interface CustomerInput {
   customerAddress: string
 }
 
-// --- Tipe State (Konsisten untuk semua Form Actions) ---
 export type InvoiceState = {
   status: 'success' | 'error' | 'info'
   message: string
@@ -47,7 +44,7 @@ export type CreateInvoiceState = InvoiceState & {
   invoiceId?: string
 }
 
-// --- Skema Zod ---
+// --- SCHEMAS ---
 
 const CartItemSchema = z.object({
   productId: z.string().cuid(),
@@ -78,8 +75,7 @@ const UpdateStatusSchema = z.object({
   status: StatusEnum
 })
 
-// Skema untuk upload file
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = [
   'image/jpeg',
   'image/jpg',
@@ -112,31 +108,22 @@ const ConfirmPriceSchema = z.object({
 
 // --- HELPER FUNCTIONS ---
 
-/**
- * Cek apakah user adalah admin
- */
-function isAdmin(userRole?: string): boolean {
+function isAdmin (userRole?: string): boolean {
   return userRole === Role.ADMIN || userRole === 'ADMIN'
 }
 
-/**
- * Cek apakah user adalah customer
- */
-function isCustomer(userRole?: string): boolean {
+function isCustomer (userRole?: string): boolean {
   return userRole === Role.CUSTOMER || userRole === 'CUSTOMER'
 }
 
-/**
- * Generate invoice number
- */
-function generateInvoiceNumber(): string {
-  return `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+function generateInvoiceNumber (): string {
+  return `INV-${Date.now()}-${Math.random()
+    .toString(36)
+    .substr(2, 9)
+    .toUpperCase()}`
 }
 
-/**
- * Calculate invoice totals
- */
-function calculateTotals(
+function calculateTotals (
   subTotal: number,
   shippingFee: number,
   discountPercent: number
@@ -149,9 +136,9 @@ function calculateTotals(
 // --- SERVER ACTIONS ---
 
 /**
- * Aksi untuk mencari produk berdasarkan nama
+ * Search products by name
  */
-export async function searchProductsAction(
+export async function searchProductsAction (
   query: string
 ): Promise<SossilverProduct[]> {
   if (!query || query.trim().length === 0) {
@@ -179,9 +166,9 @@ export async function searchProductsAction(
 }
 
 /**
- * Aksi untuk membuat Invoice baru (dari KASIR ADMIN)
+ * Create invoice (Admin only)
  */
-export async function createInvoiceAction(
+export async function createInvoiceAction (
   customer: CustomerInput,
   itemsInput: CartItemInput[],
   shippingFee: number,
@@ -197,9 +184,6 @@ export async function createInvoiceAction(
     }
   }
 
-  const userId = session.user.id
-
-  // Validasi input
   if (!itemsInput || itemsInput.length === 0) {
     return {
       status: 'error',
@@ -208,7 +192,6 @@ export async function createInvoiceAction(
     }
   }
 
-  // Validasi customer data
   const validatedCustomer = CustomerInputSchema.safeParse(customer)
   if (!validatedCustomer.success) {
     return {
@@ -218,14 +201,13 @@ export async function createInvoiceAction(
     }
   }
 
-  const { customerName, customerPhone, customerAddress } = validatedCustomer.data
+  const { customerName, customerPhone, customerAddress } =
+    validatedCustomer.data
   const invoiceNumber = generateInvoiceNumber()
-
   const subTotal = itemsInput.reduce(
     (acc, item) => acc + item.priceAtTime * item.quantity,
     0
   )
-
   const { totalAmount } = calculateTotals(
     subTotal,
     shippingFee,
@@ -244,7 +226,7 @@ export async function createInvoiceAction(
         customerName,
         customerPhone,
         customerAddress,
-        createdById: userId,
+        createdById: session.user.id,
         items: {
           create: itemsInput.map(item => ({
             productId: item.productId,
@@ -254,9 +236,7 @@ export async function createInvoiceAction(
           }))
         }
       },
-      include: {
-        items: true
-      }
+      include: { items: true }
     })
 
     console.log('✅ Invoice created:', {
@@ -266,6 +246,7 @@ export async function createInvoiceAction(
     })
 
     revalidatePath('/dashboard/invoice')
+    revalidateTag('invoices')
 
     return {
       status: 'success',
@@ -282,9 +263,9 @@ export async function createInvoiceAction(
 }
 
 /**
- * Mengambil semua invoice (Hanya Admin)
+ * Get all invoices (Admin only)
  */
-export async function getInvoicesAction() {
+export async function getInvoicesAction () {
   const session = await auth()
 
   if (!session?.user?.id || isCustomer(session.user.role)) {
@@ -294,21 +275,13 @@ export async function getInvoicesAction() {
 
   try {
     const invoices = await db.invoice.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      },
+      orderBy: { createdAt: 'desc' },
       include: {
         createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
+          select: { id: true, name: true, email: true }
         },
         items: {
-          include: {
-            product: true
-          }
+          include: { product: true }
         }
       }
     })
@@ -320,9 +293,9 @@ export async function getInvoicesAction() {
 }
 
 /**
- * Mengambil satu invoice berdasarkan ID
+ * Get invoice by ID
  */
-export async function getInvoiceByIdAction(invoiceId: string) {
+export async function getInvoiceByIdAction (invoiceId: string) {
   if (!invoiceId || invoiceId.trim().length === 0) {
     console.error('❌ Invalid invoiceId')
     return null
@@ -339,16 +312,10 @@ export async function getInvoiceByIdAction(invoiceId: string) {
       where: { id: invoiceId },
       include: {
         createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
+          select: { id: true, name: true, email: true }
         },
         items: {
-          include: {
-            product: true
-          }
+          include: { product: true }
         }
       }
     })
@@ -358,7 +325,6 @@ export async function getInvoiceByIdAction(invoiceId: string) {
       return null
     }
 
-    // Cek kepemilikan jika role-nya CUSTOMER
     if (
       isCustomer(session.user.role) &&
       invoice.customerId !== session.user.id
@@ -375,17 +341,15 @@ export async function getInvoiceByIdAction(invoiceId: string) {
 }
 
 /**
- * Mengubah status invoice (Aksi Admin)
+ * Update invoice status (Admin only)
  */
-export async function updateInvoiceStatusAction(
+export async function updateInvoiceStatusAction (
   prevState: InvoiceState,
   formData: FormData
 ): Promise<InvoiceState> {
-  const receivedStatus = formData.get('status')
-
   const validatedFields = UpdateStatusSchema.safeParse({
     id: formData.get('id'),
-    status: receivedStatus
+    status: formData.get('status')
   })
 
   if (!validatedFields.success) {
@@ -397,8 +361,8 @@ export async function updateInvoiceStatusAction(
   }
 
   const { id, status } = validatedFields.data
-
   const session = await auth()
+
   if (!session?.user?.id || !isAdmin(session.user.role)) {
     return {
       status: 'error',
@@ -414,13 +378,9 @@ export async function updateInvoiceStatusAction(
     })
 
     if (!invoice) {
-      return {
-        status: 'error',
-        message: 'Invoice tidak ditemukan.'
-      }
+      return { status: 'error', message: 'Invoice tidak ditemukan.' }
     }
 
-    // Log perubahan status
     console.log('📝 Status update:', {
       invoiceId: id,
       oldStatus: invoice.status,
@@ -436,6 +396,8 @@ export async function updateInvoiceStatusAction(
     revalidatePath('/dashboard/invoice')
     revalidatePath(`/dashboard/invoice/${id}`)
     revalidatePath('/myaccount')
+    revalidateTag(`invoice-${id}`)
+    revalidateTag('invoices')
 
     return {
       status: 'success',
@@ -445,20 +407,20 @@ export async function updateInvoiceStatusAction(
     console.error('❌ Error updating invoice status:', error)
     return {
       status: 'error',
-      message: 'Terjadi kesalahan pada server. Gagal memperbarui status.'
+      message: 'Terjadi kesalahan pada server.'
     }
   }
 }
 
 /**
- * Upload bukti bayar (Aksi Customer/Admin)
+ * Upload payment proof (Customer/Admin)
+ * ✅ IMPROVED: Better caching with revalidateTag
  */
 export async function addPaymentProofAction (
   prevState: InvoiceState,
   formData: FormData
 ): Promise<InvoiceState> {
   try {
-    // 1. Validasi input
     const validatedFields = AddProofSchema.safeParse({
       id: formData.get('id'),
       file: formData.get('file')
@@ -474,9 +436,8 @@ export async function addPaymentProofAction (
     }
 
     const { id: invoiceId, file } = validatedFields.data
-
-    // 2. Cek authentication
     const session = await auth()
+
     if (!session?.user) {
       console.error('❌ No session/user found')
       return { status: 'error', message: 'Anda harus login.' }
@@ -491,7 +452,6 @@ export async function addPaymentProofAction (
       fileType: file.type
     })
 
-    // 3. Validasi file
     if (file.size === 0) {
       return { status: 'error', message: 'File kosong, tidak bisa diupload.' }
     }
@@ -507,7 +467,6 @@ export async function addPaymentProofAction (
       }
     }
 
-    // 4. Generate unique filename
     const fileExtension = file.name.split('.').pop()?.toLowerCase()
     if (!fileExtension) {
       return { status: 'error', message: 'Tipe file tidak valid.' }
@@ -516,7 +475,6 @@ export async function addPaymentProofAction (
     const uniqueFileName = `payment-proof-${invoiceId}-${Date.now()}.${fileExtension}`
     console.log('📄 Generated filename:', uniqueFileName)
 
-    // 5. Cek invoice existence
     const existingInvoice = await db.invoice.findUnique({
       where: { id: invoiceId },
       select: { paymentProofUrl: true, status: true, customerId: true }
@@ -527,36 +485,23 @@ export async function addPaymentProofAction (
       return { status: 'error', message: 'Invoice tidak ditemukan.' }
     }
 
-    console.log('✅ Invoice found:', {
-      invoiceId,
-      status: existingInvoice.status,
-      customerId: existingInvoice.customerId,
-      hasPaymentProof: !!existingInvoice.paymentProofUrl
-    })
-
-    // 6. Cek otorisasi
     if (
       isCustomer(session.user.role) &&
       existingInvoice.customerId !== session.user.id
     ) {
-      console.error('❌ Unauthorized:', {
-        userId: session.user.id,
-        customerId: existingInvoice.customerId
-      })
+      console.error('❌ Unauthorized')
       return { status: 'error', message: 'Ini bukan invoice Anda.' }
     }
 
-    // 7. Cek status invoice
     const allowedStatuses = ['UNPAID', 'WAITING_VERIFICATION']
     if (!allowedStatuses.includes(existingInvoice.status)) {
       console.error('❌ Invalid invoice status:', existingInvoice.status)
       return {
         status: 'error',
-        message: `Tidak bisa upload. Status invoice saat ini: ${existingInvoice.status}. Harap tunggu konfirmasi admin.`
+        message: `Tidak bisa upload. Status saat ini: ${existingInvoice.status}`
       }
     }
 
-    // 8. Setup upload directory
     const uploadDir = path.join(
       process.cwd(),
       'public',
@@ -566,13 +511,12 @@ export async function addPaymentProofAction (
 
     try {
       await fs.mkdir(uploadDir, { recursive: true })
-      console.log('📁 Upload directory ready:', uploadDir)
+      console.log('📁 Upload directory ready')
     } catch (mkdirError) {
       console.error('❌ Failed to create upload directory:', mkdirError)
       return { status: 'error', message: 'Gagal membuat folder upload.' }
     }
 
-    // 9. Save file ke disk
     console.log('💾 Saving file to disk...')
     const filePath = path.join(uploadDir, uniqueFileName)
 
@@ -585,14 +529,12 @@ export async function addPaymentProofAction (
       return { status: 'error', message: 'Gagal menyimpan file.' }
     }
 
-    // 10. Generate file URL
     const fileUrl = `/uploads/payment-proofs/${uniqueFileName}`
     console.log('🔗 Generated file URL:', fileUrl)
 
-    // 11. Delete old file jika ada
+    // Delete old file
     if (existingInvoice?.paymentProofUrl) {
       try {
-        // Jika URL adalah local path
         if (existingInvoice.paymentProofUrl.startsWith('/uploads/')) {
           const oldFilePath = path.join(
             process.cwd(),
@@ -600,15 +542,13 @@ export async function addPaymentProofAction (
             existingInvoice.paymentProofUrl
           )
           await fs.unlink(oldFilePath)
-          console.log('🗑️ Old file deleted:', oldFilePath)
+          console.log('🗑️ Old file deleted')
         }
       } catch (delError) {
         console.warn('⚠️ Failed to delete old file:', delError)
-        // Lanjut, jangan stop
       }
     }
 
-    // 12. Update database
     console.log('💾 Updating invoice in database...')
     const updatedInvoice = await db.invoice.update({
       where: { id: invoiceId },
@@ -618,18 +558,16 @@ export async function addPaymentProofAction (
       }
     })
 
-    console.log('✅ Invoice updated:', {
-      invoiceId: updatedInvoice.id,
-      paymentProofUrl: updatedInvoice.paymentProofUrl,
-      status: updatedInvoice.status
-    })
+    console.log('✅ Invoice updated')
 
-    // 13. Revalidate paths
-    console.log('🔄 Revalidating paths...')
+    // ✅ IMPROVED: Better cache revalidation
+    console.log('🔄 Revalidating cache...')
     revalidatePath(`/dashboard/invoice/${invoiceId}`)
     revalidatePath('/dashboard/invoice')
     revalidatePath('/myaccount')
-    console.log('✅ Paths revalidated')
+    revalidateTag(`invoice-${invoiceId}`)
+    revalidateTag('invoices')
+    console.log('✅ Cache revalidated')
 
     return {
       status: 'success',
@@ -638,41 +576,34 @@ export async function addPaymentProofAction (
   } catch (error) {
     console.error('❌ ERROR in addPaymentProofAction:', {
       errorType: error instanceof Error ? error.constructor.name : typeof error,
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      message: error instanceof Error ? error.message : String(error)
     })
 
     let errorMessage = 'Gagal mengupload file karena kesalahan server.'
 
     if (error instanceof Error) {
       if (error.message.includes('EACCES')) {
-        errorMessage = 'Folder upload tidak memiliki permission. Hubungi admin.'
+        errorMessage = 'Folder upload tidak memiliki permission.'
       } else if (error.message.includes('ENOENT')) {
         errorMessage = 'Folder upload tidak ditemukan.'
       } else if (error.message.includes('timeout')) {
-        errorMessage =
-          'Upload timeout. Coba lagi atau gunakan file yang lebih kecil.'
+        errorMessage = 'Upload timeout. Coba lagi.'
       }
     }
 
-    return {
-      status: 'error',
-      message: errorMessage
-    }
+    return { status: 'error', message: errorMessage }
   }
 }
 
-
 /**
- * Aksi "Beli Cepat" dari sisi PELANGGAN
+ * Quick order from customer
  */
-export async function createCustomerOrderAction(formData: FormData): Promise<void> {
+export async function createCustomerOrderAction (
+  formData: FormData
+): Promise<void> {
   const session = await auth()
 
-  if (
-    !session?.user?.id ||
-    !isCustomer(session.user.role)
-  ) {
+  if (!session?.user?.id || !isCustomer(session.user.role)) {
     throw new Error('Anda harus login sebagai pelanggan untuk memesan.')
   }
 
@@ -689,22 +620,17 @@ export async function createCustomerOrderAction(formData: FormData): Promise<voi
       db.sossilverProduct.findUnique({ where: { id: productId } })
     ])
 
-    if (!customer) {
-      throw new Error('Akun pelanggan tidak ditemukan.')
-    }
-
-    if (!product) {
-      throw new Error('Produk tidak ditemukan.')
+    if (!customer || !product) {
+      throw new Error('Data tidak ditemukan.')
     }
 
     const invoiceNumber = generateInvoiceNumber()
-    const totalAmount = product.hargaJual
 
-    const newInvoice = await db.invoice.create({
+    await db.invoice.create({
       data: {
         invoiceNumber,
-        totalAmount,
-        subTotal: totalAmount,
+        totalAmount: product.hargaJual,
+        subTotal: product.hargaJual,
         shippingFee: 0,
         discountPercent: 0,
         status: 'MENUNGGU_KONFIRMASI_ADMIN',
@@ -726,13 +652,9 @@ export async function createCustomerOrderAction(formData: FormData): Promise<voi
       }
     })
 
-    console.log('✅ Customer order created:', {
-      id: newInvoice.id,
-      invoiceNumber: newInvoice.invoiceNumber,
-      customerId: userId
-    })
-
+    console.log('✅ Customer order created')
     revalidatePath('/myaccount')
+    revalidateTag('invoices')
   } catch (error) {
     console.error('❌ Error creating customer order:', error)
     throw new Error('Gagal memproses pesanan Anda.')
@@ -742,24 +664,19 @@ export async function createCustomerOrderAction(formData: FormData): Promise<voi
 }
 
 /**
- * Aksi untuk CHECKOUT KERANJANG BELANJA
+ * Checkout shopping cart
  */
-export async function checkoutAction(
+export async function checkoutAction (
   prevState: CreateInvoiceState | undefined,
   formData: FormData
 ): Promise<CreateInvoiceState> {
   const session = await auth()
 
-  if (
-    !session?.user?.id ||
-    !isCustomer(session.user.role)
-  ) {
+  if (!session?.user?.id || !isCustomer(session.user.role)) {
     return { status: 'error', message: 'Anda harus login untuk checkout.' }
   }
 
   const userId = session.user.id
-
-  // 1. Validasi data pengiriman
   const customerData = {
     customerPhone: formData.get('customerPhone') as string,
     customerAddress: formData.get('customerAddress') as string
@@ -778,13 +695,11 @@ export async function checkoutAction(
     }
   }
 
-  // 2. Ambil data customer
   const customer = await db.user.findUnique({ where: { id: userId } })
   if (!customer) {
     return { status: 'error', message: 'Akun pelanggan tidak ditemukan.' }
   }
 
-  // 3. Validasi cart items
   const cartItemsJSON = formData.get('cartItems') as string
   if (!cartItemsJSON) {
     return { status: 'error', message: 'Keranjang Anda kosong.' }
@@ -809,14 +724,13 @@ export async function checkoutAction(
     return { status: 'error', message: 'Gagal memproses data keranjang.' }
   }
 
-  // 4. Verifikasi harga produk dari database
   let subTotal = 0
   try {
     const productPrices = await Promise.all(
       itemsInput.map(item =>
         db.sossilverProduct.findUnique({
           where: { id: item.productId },
-          select: { hargaJual: true, nama: true, gramasi: true }
+          select: { hargaJual: true, gramasi: true }
         })
       )
     )
@@ -832,9 +746,8 @@ export async function checkoutAction(
         }
       }
 
-      const priceFromDB = product.hargaJual
-      subTotal += priceFromDB * item.quantity
-      item.priceAtTime = priceFromDB
+      subTotal += product.hargaJual * item.quantity
+      item.priceAtTime = product.hargaJual
     }
   } catch (error) {
     console.error('❌ Error verifying product prices:', error)
@@ -844,7 +757,6 @@ export async function checkoutAction(
   const invoiceNumber = generateInvoiceNumber()
   const { totalAmount } = calculateTotals(subTotal, 0, 0)
 
-  // 5. Buat Invoice
   try {
     const newInvoice = await db.invoice.create({
       data: {
@@ -870,15 +782,9 @@ export async function checkoutAction(
       }
     })
 
-    console.log('✅ Checkout successful:', {
-      id: newInvoice.id,
-      invoiceNumber: newInvoice.invoiceNumber,
-      customerId: userId,
-      itemCount: itemsInput.length,
-      totalAmount
-    })
-
+    console.log('✅ Checkout successful')
     revalidatePath('/myaccount')
+    revalidateTag('invoices')
 
     return {
       status: 'success',
@@ -895,13 +801,12 @@ export async function checkoutAction(
 }
 
 /**
- * Aksi untuk Admin mengkonfirmasi Ongkir & Diskon
+ * Admin confirm price with shipping fee and discount
  */
-export async function confirmInvoicePriceAction(
+export async function confirmInvoicePriceAction (
   prevState: InvoiceState,
   formData: FormData
 ): Promise<InvoiceState> {
-  // 1. Validasi input
   const validatedFields = ConfirmPriceSchema.safeParse({
     id: formData.get('id'),
     shippingFee: formData.get('shippingFee'),
@@ -917,15 +822,13 @@ export async function confirmInvoicePriceAction(
   }
 
   const { id, shippingFee, discountPercent } = validatedFields.data
-
-  // 2. Otorisasi Admin
   const session = await auth()
+
   if (!session?.user?.id || !isAdmin(session.user.role)) {
     return { status: 'error', message: 'Akses ditolak.' }
   }
 
   try {
-    // 3. Ambil data invoice
     const invoice = await db.invoice.findUnique({
       where: { id },
       select: { subTotal: true, status: true }
@@ -942,14 +845,12 @@ export async function confirmInvoicePriceAction(
       }
     }
 
-    // 4. Hitung ulang total
     const { totalAmount } = calculateTotals(
       invoice.subTotal,
       shippingFee,
       discountPercent
     )
 
-    // 5. Update invoice
     await db.invoice.update({
       where: { id },
       data: {
@@ -960,24 +861,20 @@ export async function confirmInvoicePriceAction(
       }
     })
 
-    console.log('✅ Invoice price confirmed:', {
-      id,
-      shippingFee,
-      discountPercent,
-      totalAmount,
-      confirmedBy: session.user.id
-    })
+    console.log('✅ Invoice price confirmed')
 
-    // 6. Revalidate
     revalidatePath(`/dashboard/invoice/${id}`)
     revalidatePath('/myaccount')
+    revalidateTag(`invoice-${id}`)
+    revalidateTag('invoices')
 
     return {
       status: 'success',
-      message: 'Total harga berhasil dikonfirmasi. Menunggu pembayaran customer.'
+      message:
+        'Total harga berhasil dikonfirmasi. Menunggu pembayaran customer.'
     }
   } catch (error) {
-    console.error('Gagal konfirmasi harga:', error)
+    console.error('❌ Error confirming price:', error)
     return { status: 'error', message: 'Gagal memperbarui database.' }
   }
 }
