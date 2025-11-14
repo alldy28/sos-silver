@@ -108,22 +108,11 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
 
             {/* ✅ FIXED: Gunakan <img> tag biasa instead of Image component */}
             {invoice.paymentProofUrl && (
-              <div className="mt-2">
-                <a
-                  href={invoice.paymentProofUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block"
-                >
-                  <img
-                    src={invoice.paymentProofUrl}
-                    alt="Bukti bayar"
-                    width={80}
-                    height={80}
-                    className="rounded-md object-cover border hover:opacity-80 w-20 h-20"
-                  />
-                </a>
-              </div>
+              <img
+                src={invoice.paymentProofUrl}
+                alt="Bukti bayar"
+                className="w-20 h-20 rounded"
+              />
             )}
           </div>
         )}

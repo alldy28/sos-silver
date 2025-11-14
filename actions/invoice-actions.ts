@@ -529,7 +529,7 @@ export async function addPaymentProofAction (
       return { status: 'error', message: 'Gagal menyimpan file.' }
     }
 
-    const fileUrl = `/uploads/payment-proofs/${uniqueFileName}`
+    const fileUrl = `/api/uploads/uploads/payment-proofs/${uniqueFileName}`
     console.log('🔗 Generated file URL:', fileUrl)
 
     // Delete old file
