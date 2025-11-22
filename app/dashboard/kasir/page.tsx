@@ -397,12 +397,16 @@ export default function KasirPage() {
                 id="discountPercent"
                 value={discountPercent}
                 onChange={(e) => {
-                  const value = parseInt(e.target.value, 10) || 0;
-                  // Batasi diskon maksimal 100%
+                  // [PERBAIKAN] Gunakan 'parseFloat' untuk mendukung desimal
+                  const value = parseFloat(e.target.value) || 0;
+
+                  // Batasi diskon maksimal 100% dan minimal 0
                   setDiscountPercent(Math.min(Math.max(value, 0), 100));
                 }}
                 min="0"
                 max="100"
+                step="0.1" // [PERBAIKAN] Izinkan langkah desimal (misal: 1.5, 1.6)
+                placeholder="0"
                 className="w-20 px-2 py-1 border rounded-lg text-right dark:bg-gray-700 dark:border-gray-600"
               />
               <span className="text-gray-600 dark:text-gray-300">%</span>
