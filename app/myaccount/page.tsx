@@ -215,7 +215,7 @@ function EmptyState() {
         </p>
         <div className="pt-4">
           <a
-            href="/product-catalog"
+            href="/produk"
             className="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition"
           >
             Mulai Belanja

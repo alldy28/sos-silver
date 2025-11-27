@@ -551,7 +551,8 @@ export async function addPaymentProofAction (
 
     // 5. Buat URL publik (Path relatif dari folder 'public')
     // Ini yang akan disimpan di database
-    const fileUrl = `/uploads/payment-proofs/${uniqueFileName}`
+    const fileUrl = `/api/uploads/uploads/payment-proofs/${uniqueFileName}`
+    console.log('🔗 Generated file URL:', fileUrl)
 
     // 6. Hapus file lama jika ada (untuk menghemat ruang)
     if (
