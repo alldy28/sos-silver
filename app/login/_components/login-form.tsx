@@ -1,103 +1,108 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useActionState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle } from "lucide-react";
-import Link from "next/link";
+import { loginAction, type LoginState } from "@/actions/auth-actions";
+import { AtSign, Lock, AlertCircle, ArrowRight } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
-// [PERBAIKAN] Ganti ini dengan path ke server action login Anda
-import { loginAction } from "@/actions/auth-actions";
-// [PERBAIKAN] Hapus impor 'LoginState' dan 'initialState' dari action
-// import { type LoginState, initialState } from '@/actions/auth-actions';
-
-// [PERBAIKAN BARU] Definisikan Tipe State DI SINI (di file klien)
-export type LoginState = {
-  status: "info" | "error" | "success";
-  message: string;
-};
-
-// [PERBAIKAN BARU] Definisikan Initial State DI SINI
-export const initialState: LoginState = {
+// Define initial state to match LoginState type (which includes undefined)
+// but providing a concrete initial value avoids some undefined checks.
+const initialState: LoginState = {
   status: "info",
   message: "",
 };
 
-// --- Simulasi Server Action (HAPUS JIKA SUDAH PUNYA) ---
-// [DIHAPUS] Seluruh blok simulasi (loginAction dan initialState)
-// sekarang dihapus. Kita menggunakan yang asli dari 'auth-actions'.
-// --- Akhir Simulasi ---
-
-/**
- * Komponen Klien yang berisi form, useSearchParams, dan useActionState
- */
 export function LoginForm() {
-  // [PERBAIKAN] Panggil useSearchParams DI DALAM komponen klien
-  const searchParams = useSearchParams();
-  const urlError = searchParams.get("error");
-
-  // [PERBAIKAN] Gunakan useActionState untuk menangani state form
-  // Ini sekarang akan memanggil 'loginAction' yang asli
-  const [state, dispatch, isPending] = useActionState(
+  const [state, formAction, isPending] = useActionState(
     loginAction,
     initialState
   );
 
-  // Tentukan pesan error
-  let errorMessage: string | null = null;
-  if (state.status === "error" && state.message) {
-    // Error dari action (saat form disubmit)
-    errorMessage = state.message;
-  } else if (urlError === "CredentialsSignin") {
-    // Error dari Auth.js (saat di-redirect kembali)
-    errorMessage = "Email atau password salah. Silakan coba lagi.";
-  } else if (urlError) {
-    // Error lain dari URL
-    errorMessage = "Terjadi kesalahan. Silakan coba lagi.";
-  }
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
 
   return (
-    <form action={dispatch} className="space-y-6">
-      {/* Tampilkan Error Box */}
-      {errorMessage && (
-        <div className="bg-red-50 p-3 rounded-md flex items-center gap-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
-          <AlertCircle className="w-4 h-4" />
-          <span>{errorMessage}</span>
+    <form action={formAction} className="space-y-6">
+      <input type="hidden" name="callbackUrl" value={callbackUrl || ""} />
+
+      <div>
+        <label
+          htmlFor="email"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          Email
+        </label>
+        <div className="relative mt-1">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <AtSign className="w-5 h-5 text-gray-400" />
+          </div>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="admin@sossilver.com"
+            className="block w-full py-3 pl-10 pr-4 text-gray-900 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label
+          htmlFor="password"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          Password
+        </label>
+        <div className="relative mt-1">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Lock className="w-5 h-5 text-gray-400" />
+          </div>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            minLength={6}
+            placeholder="••••••••"
+            className="block w-full py-3 pl-10 pr-4 text-gray-900 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+          />
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          disabled={isPending}
+          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {isPending ? "Loading..." : "Login"}
+          {!isPending && <ArrowRight className="w-5 h-5 ml-2 -mr-1" />}
+        </button>
+      </div>
+
+      {/* [FIX] Safely access state properties using optional chaining (?.) */}
+      {state?.status === "error" && (
+        <div
+          className="flex items-center p-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800"
+          role="alert"
+        >
+          <AlertCircle className="w-5 h-5 mr-3" />
+          <p>{state.message}</p>
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="email@anda.com"
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input id="password" name="password" type="password" required />
-      </div>
-
-      <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Login
-      </Button>
-
-      <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-        Belum punya akun?{" "}
-        <Link
-          href="/register"
-          className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+      {/* Optional: Show success message */}
+      {state?.status === "success" && (
+        <div
+          className="flex items-center p-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-200 dark:text-green-800"
+          role="alert"
         >
-          Daftar di sini
-        </Link>
-      </div>
+          <p>{state.message}</p>
+        </div>
+      )}
     </form>
   );
 }

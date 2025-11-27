@@ -1,52 +1,91 @@
 'use server'
 
 import { signOut } from '@/auth'
-import { signIn } from '@/auth' // Impor dari auth.ts
+import { signIn } from '@/auth'
 import { AuthError } from 'next-auth'
+import { db } from '@/lib/db'
 
-// [PERBAIKAN 1] Tipe state didefinisikan secara lokal, TIDAK DI-EKSPOR
-type LoginState = {
-  status: 'info' | 'error' | 'success'
-  message: string
-}
-
-// [PERBAIKAN 2] 'initialState' DIHAPUS DARI SINI
-// Pindahkan ke file 'login-form.tsx'
+// [PERBAIKAN] Definisikan tipe state sebagai objek, bukan string
+export type LoginState =
+  | {
+      status: 'success' | 'error' | 'info'
+      message: string
+    }
+  | undefined
 
 /**
- * Fungsi ini akan dipanggil oleh form login
- * [PERBAIKAN 3] Ganti nama 'authenticate' -> 'loginAction'
- * dan perbarui parameter/return type
+ * Server Action untuk Login
  */
 export async function loginAction (
-  prevState: LoginState, // <-- Diperbarui
+  prevState: LoginState,
   formData: FormData
 ): Promise<LoginState> {
-  // <-- Diperbarui
   try {
-    // Coba login menggunakan provider 'credentials'
-    await signIn('credentials', formData)
+    const email = formData.get('email') as string
+    const callbackUrl = formData.get('callbackUrl') as string
 
-    // Jika signIn berhasil, middleware akan me-redirect.
-    // Kode ini mungkin tidak akan tercapai, tapi sebagai fallback.
+    // 1. Tentukan URL Tujuan Default
+    let redirectUrl = '/myaccount' // Default untuk customer
+
+    // 2. Cek apakah ada 'callbackUrl' (Misal: dari halaman produk/affiliate)
+    // Jika ada, INI MENANG. Kita prioritaskan ini.
+    if (callbackUrl && callbackUrl !== 'null' && callbackUrl !== 'undefined') {
+      redirectUrl = callbackUrl
+    } else {
+      // 3. Jika TIDAK ada callbackUrl, baru kita cek Role untuk menentukan dashboard
+      // Kita perlu fetch user sebentar untuk tahu role-nya
+      const user = await db.user.findUnique({ where: { email } })
+      if (user?.role === 'ADMIN') {
+        redirectUrl = '/dashboard'
+      }
+    }
+
+    // 4. Lakukan Sign In dengan URL yang sudah ditentukan
+    await signIn('credentials', {
+      ...Object.fromEntries(formData),
+      redirectTo: redirectUrl // <-- Next-Auth akan menggunakan ini
+    })
+
+    // Jika signIn berhasil, biasanya akan melempar error redirect.
+    // Jika sampai di sini (jarang terjadi untuk redirect), kita kembalikan sukses.
     return { status: 'success', message: 'Login berhasil.' }
-  } catch (error) {
+  } catch (error: unknown) {
+    // Cek error redirect (ini tanda sukses di Next.js)
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'digest' in error &&
+      typeof (error as { digest: string }).digest === 'string' &&
+      (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+    ) {
+      throw error
+    }
+
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
-          // [PERBAIKAN 4] Kembalikan objek LoginState
-          return { status: 'error', message: 'Email atau password salah.' }
+          return { status: 'error', message: 'Email atau Password salah.' }
+        case 'CallbackRouteError':
+          if (error.cause?.err?.message === 'ACCOUNT_NOT_VERIFIED') {
+            return {
+              status: 'error',
+              message: 'Akun Anda belum diaktivasi. Silakan cek email Anda.'
+            }
+          }
+          return { status: 'error', message: 'Terjadi kesalahan pada server.' }
         default:
-          // [PERBAIKAN 4] Kembalikan objek LoginState
-          return { status: 'error', message: 'Terjadi kesalahan. Coba lagi.' }
+          return {
+            status: 'error',
+            message: 'Terjadi kesalahan. Silakan coba lagi.'
+          }
       }
     }
-    // Jika error bukan dari NextAuth, lempar lagi agar ditangani
-    throw error
+
+    console.error('Login Error:', error)
+    return { status: 'error', message: 'Terjadi kesalahan internal.' }
   }
 }
 
 export async function logoutAction () {
-  // Panggil signOut dari file terpisah
-  await signOut({ redirectTo: '/login' })
+  await signOut()
 }

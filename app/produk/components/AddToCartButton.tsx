@@ -1,72 +1,83 @@
-// src/app/produk/components/AddToCartButton.tsx
 "use client";
 
 import { useState } from "react";
-// [PERBAIKAN] Impor 'useCart' dan 'ProductForCart' dari file context
-import { useCart, ProductForCart } from "../../context/CartContext";
+// [PERBAIKAN] Gunakan tipe 'SossilverProduct' dari Prisma
+import { SossilverProduct } from "@prisma/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Check, LogIn, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-
-// Tipe 'ProductForCart' sekarang diimpor dari Context
+import { Loader2, ShoppingCart, Check, LogIn } from "lucide-react";
+import Link from "next/link";
+// [PERBAIKAN] Gunakan 'useCart' dari context yang benar
+import { useCart } from "../../context/CartContext";
+import { usePathname, useSearchParams } from "next/navigation";
 
 interface AddToCartButtonProps {
-  product: ProductForCart; // Tipe ini sekarang cocok
+  product: SossilverProduct; // [PERBAIKAN] Tipe data yang benar
   isLoggedIn: boolean;
 }
 
 export function AddToCartButton({ product, isLoggedIn }: AddToCartButtonProps) {
-  const router = useRouter();
-  // [PERBAIKAN] 'isInCart' sekarang ada di context
-  const { addToCart, isInCart } = useCart();
-  const [isLoading, setIsLoading] = useState(false);
+  // [PERBAIKAN] Ambil 'cartItems' untuk mengecek ketersediaan
+  const { addToCart, cartItems } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
 
-  // Cek apakah item sudah ada di keranjang
-  const isAlreadyInCart = isInCart(product.id); // <-- Ini akan berhasil
+  // 1. Mengambil URL saat ini + Parameter (seperti ?ref=AFFILIATE)
+  // Ini PENTING agar Affiliate Tracking tidak putus saat user login
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentUrl = `${pathname}?${searchParams.toString()}`;
+  const loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`;
 
-  // --- 1. Logika jika user BELUM LOGIN ---
+  // 2. [PERBAIKAN] Cek apakah item sudah ada di keranjang secara manual
+  // karena 'isInCart' tidak ada di context.
+  const isAlreadyInCart = cartItems.some(
+    (item) => item.productId === product.id
+  );
+
+  // 3. Logika jika user BELUM LOGIN
   if (!isLoggedIn) {
     return (
       <Button
-        className="w-full"
-        onClick={() => router.push("/login")}
+        asChild
+        className="w-full bg-gray-600 hover:bg-gray-700"
         variant="outline"
       >
-        <LogIn className="mr-2 h-4 w-4" />
-        Login untuk Membeli
+        {/* Gunakan Link dengan callbackUrl */}
+        <Link href={loginUrl}>
+          <LogIn className="mr-2 h-4 w-4" />
+          Login untuk Membeli
+        </Link>
       </Button>
     );
   }
 
-  // --- 2. Logika jika user SUDAH LOGIN ---
+  // 4. Logika jika user SUDAH LOGIN
   const handleAddToCart = () => {
-    setIsLoading(true);
-
-    // [PERBAIKAN] Kita tidak perlu membuat 'newItem' di sini lagi.
-    // Cukup panggil 'addToCart' dengan 'product' prop.
-    // Konteks akan menangani sisanya.
+    setIsAdding(true);
     addToCart(product);
 
-    // Beri sedikit jeda agar user melihat feedback
+    // Beri sedikit jeda visual
     setTimeout(() => {
-      setIsLoading(false);
-      // Anda bisa tambahkan notifikasi Toast di sini
-      // toast.success(`${product.nama} ditambahkan ke keranjang!`);
-    }, 500);
+      setIsAdding(false);
+    }, 1000);
   };
 
   return (
     <Button
-      className="w-full"
+      type="button"
+      className={`w-full transition-colors ${
+        isAdding || isAlreadyInCart
+          ? "bg-green-600 hover:bg-green-700" // Warna hijau jika sukses/sudah ada
+          : "bg-indigo-600 hover:bg-indigo-700" // Warna default
+      }`}
       onClick={handleAddToCart}
-      disabled={isAlreadyInCart || isLoading}
+      disabled={isAlreadyInCart || isAdding}
     >
       {isAlreadyInCart ? (
         <>
           <Check className="mr-2 h-4 w-4" />
           Sudah di Keranjang
         </>
-      ) : isLoading ? (
+      ) : isAdding ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Menambahkan...

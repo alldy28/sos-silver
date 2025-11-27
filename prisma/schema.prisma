@@ -38,7 +38,7 @@ model User {
   password  String
   name      String?
   
-  // Kolom untuk Role dan Verifikasi
+  // Kolom untuk Role dan Verifikasi (SAMA)
   role          Role      @default(CUSTOMER)
   emailVerified DateTime?
   verificationToken String?   @unique
@@ -46,16 +46,40 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
 
-  // Relasi 1: Invoice yang DIBUAT oleh Admin
+  // --- [BARU] Field Affiliate ---
+  isAffiliate   Boolean   @default(false) // Apakah user ini sudah aktifkan affiliate?
+  affiliateCode String?   @unique         // Kode unik (misal: 'ALDI123')
+
+  // Relasi Komisi (Uang yang didapat)
+  commissions   AffiliateCommission[]
+
+  // [BARU] Invoice yang direferensikan oleh user ini (sebagai Affiliate)
+  referredInvoices Invoice[] @relation("AffiliateReferral")
+
+  // Relasi Invoice Admin & Customer (SAMA)
   createdInvoices Invoice[] @relation("AdminCreator")
-  
-  // Relasi 2: Order yang DIMILIKI oleh Customer
   orders          Invoice[] @relation("CustomerOwner")
 }
 
 model PriceImage {
   id       String @id @default("current_price_list")
   imageUrl String
+}
+
+model AffiliateCommission {
+  id          String   @id @default(cuid())
+  amount      Int      // Jumlah komisi (Rupiah)
+  percentage  Float    // Persentase yang dipakai (1.2%)
+  
+  // Relasi ke Affiliate (User)
+  affiliateId String
+  affiliate   User     @relation(fields: [affiliateId], references: [id])
+  
+  // Relasi ke Invoice asal komisi
+  invoiceId   String   @unique
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+
+  createdAt   DateTime @default(now())
 }
 
 model PromoSlide {
@@ -72,34 +96,36 @@ model PromoSlide {
 
 model Invoice {
   id              String   @id @default(cuid())
+  // ... (field invoiceNumber s/d paymentProofUrl SAMA)
   invoiceNumber   String   @unique
   customerName    String
   customerPhone   String?
   customerAddress String?
-  
-  // Data Keuangan
   totalAmount     Int
   shippingFee     Int      @default(0)
   subTotal        Float    @default(0)
   discountPercent Float    @default(0)
-  
-  // [PERBAIKAN] Menggunakan 'String' sesuai skema Anda
   status          String   @default("UNPAID")
   paymentProofUrl String?
   
-  // Timestamps
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  // Relasi 1: Admin yang membuat
+  // Relasi Admin & Customer (SAMA)
   createdById     String
   createdBy       User     @relation("AdminCreator", fields: [createdById], references: [id])
-  
-  // Relasi 2: Customer yang memiliki (opsional)
   customerId      String?
   customer        User?    @relation("CustomerOwner", fields: [customerId], references: [id])
 
-  // Relasi ke Item
+  // --- [BARU] Relasi ke Affiliate ---
+  // Jika invoice ini beli lewat link affiliate, simpan ID-nya di sini
+  affiliateId     String?
+  affiliate       User?     @relation("AffiliateReferral", fields: [affiliateId], references: [id])
+
+  // Relasi ke tabel komisi (jika sudah cair)
+  commission      AffiliateCommission?
+
+  // Relasi ke Item (SAMA)
   items           InvoiceItem[]
 }
 

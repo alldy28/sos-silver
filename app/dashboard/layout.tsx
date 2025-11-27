@@ -126,7 +126,7 @@ export default function DashboardLayout({
          ======================== */}
       <div className="flex flex-col h-screen overflow-hidden">
         {/* HEADER MOBILE & DESKTOP */}
-        <header className="relative sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white px-6 shadow-sm dark:bg-gray-800 dark:border-gray-700">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white px-6 shadow-sm dark:bg-gray-800 dark:border-gray-700">
           {/* --- KIRI: Tombol Menu Mobile (Hanya muncul di Mobile) --- */}
           <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
             <SheetTrigger asChild>
