@@ -3,14 +3,16 @@
 import { db } from '@/lib/db'
 import { auth } from '@/auth'
 import { revalidatePath, revalidateTag } from 'next/cache'
-import { put, del } from '@vercel/blob'
+// Hapus put dan del dari @vercel/blob karena kita pakai fs
+// import { put, del } from "@vercel/blob";
 import { z } from 'zod'
 import { Prisma, SossilverProduct, Role } from '@prisma/client'
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers' // [PENTING] Untuk membaca cookie affiliate
+import { cookies } from 'next/headers'
+import fs from 'fs/promises'
+import path from 'path'
 
-// --- Tipe Data & Interface ---
-
+// ... (Interface & Tipe Data TETAP SAMA) ...
 export interface CartItemInput {
   productId: string
   quantity: number
@@ -24,7 +26,6 @@ export interface CustomerInput {
   customerAddress: string
 }
 
-// Tipe State untuk useActionState
 export type InvoiceState = {
   status: 'success' | 'error' | 'info'
   message: string
@@ -35,8 +36,7 @@ export type CreateInvoiceState = InvoiceState & {
   invoiceId?: string
 }
 
-// --- Skema Validasi Zod ---
-
+// ... (Skema Zod TETAP SAMA) ...
 const CartItemSchema = z.object({
   productId: z.string().cuid(),
   quantity: z.number().min(1),
@@ -73,18 +73,38 @@ const UpdateStatusSchema = z.object({
 
 const ConfirmPriceSchema = z.object({
   id: z.string().min(1, 'ID Invoice diperlukan.'),
-  shippingFee: z.coerce.number().min(0, 'Ongkir tidak boleh negatif.'),
+  shippingFee: z.coerce
+    .number()
+    .min(0, 'Ongkir tidak boleh negatif.')
+    .default(0),
   discountPercent: z.coerce
     .number()
     .min(0, 'Diskon tidak boleh negatif.')
     .max(100, 'Diskon maksimal 100%.')
+    .default(0)
 })
+
+// --- Helper Functions ---
+function calculateTotals (
+  subTotal: number,
+  shippingFee: number,
+  discountPercent: number
+) {
+  const discountAmount = (subTotal * discountPercent) / 100
+  const totalAmount = Math.round(subTotal - discountAmount + shippingFee)
+  return { discountAmount, totalAmount }
+}
+
+function generateInvoiceNumber (): string {
+  return `INV-${Date.now()}-${Math.random()
+    .toString(36)
+    .substr(2, 9)
+    .toUpperCase()}`
+}
 
 // --- SERVER ACTIONS ---
 
-/**
- * 1. Cari Produk (Untuk Kasir Admin & Pencarian Umum)
- */
+// ... (searchProductsAction TETAP SAMA) ...
 export async function searchProductsAction (
   query: string
 ): Promise<SossilverProduct[]> {
@@ -103,11 +123,7 @@ export async function searchProductsAction (
   }
 }
 
-/**
- * 2. Buat Invoice (KASIR ADMIN)
- * - Menghitung total di server
- * - Tidak ada affiliate (karena dibuat admin)
- */
+// ... (createInvoiceAction TETAP SAMA) ...
 export async function createInvoiceAction (
   customer: CustomerInput,
   itemsInput: CartItemInput[],
@@ -137,23 +153,25 @@ export async function createInvoiceAction (
   }
   const userId = session.user.id
 
-  // Hitung total
   const subTotal = items.reduce(
     (acc, item) => acc + item.priceAtTime * item.quantity,
     0
   )
-  const discountAmount = (subTotal * discountPercent) / 100
-  const totalAmount = subTotal - discountAmount + shippingFee
-  const invoiceNumber = `INV-${Date.now()}`
+  const { totalAmount } = calculateTotals(
+    subTotal,
+    shippingFee,
+    discountPercent
+  )
+  const invoiceNumber = generateInvoiceNumber()
 
   try {
     const newInvoice = await db.invoice.create({
       data: {
         invoiceNumber,
         totalAmount,
-        subTotal, // [PENTING] Simpan subTotal
+        subTotal,
         shippingFee,
-        discountPercent, // [PENTING] Simpan diskon
+        discountPercent,
         status: 'UNPAID',
         customerName: customerInfo.customerName,
         customerPhone: customerInfo.customerPhone,
@@ -182,9 +200,7 @@ export async function createInvoiceAction (
   }
 }
 
-/**
- * 3. Ambil Semua Invoice (List)
- */
+// ... (getInvoicesAction TETAP SAMA) ...
 export async function getInvoicesAction () {
   try {
     const invoices = await db.invoice.findMany({
@@ -201,9 +217,7 @@ export async function getInvoicesAction () {
   }
 }
 
-/**
- * 4. Ambil Detail Invoice by ID
- */
+// ... (getInvoiceByIdAction TETAP SAMA) ...
 export async function getInvoiceByIdAction (invoiceId: string) {
   try {
     const invoice = await db.invoice.findUnique({
@@ -211,7 +225,7 @@ export async function getInvoiceByIdAction (invoiceId: string) {
       include: {
         createdBy: true,
         items: { include: { product: true } },
-        commission: true // Cek apakah sudah ada komisi
+        commission: true
       }
     })
     return invoice
@@ -221,45 +235,35 @@ export async function getInvoiceByIdAction (invoiceId: string) {
   }
 }
 
-/**
- * 5. CHECKOUT CUSTOMER (KERANJANG BELANJA)
- * - Membaca cookie affiliate
- * - Menyimpan affiliateId
- * - Verifikasi harga produk dari DB
- */
+// ... (checkoutAction TETAP SAMA) ...
 export async function checkoutAction (
   prevState: CreateInvoiceState | undefined,
   formData: FormData
 ): Promise<CreateInvoiceState> {
-  // 1. Cek Login Pelanggan
   const session = await auth()
   if (!session?.user?.id || session.user.role !== 'CUSTOMER') {
     return { status: 'error', message: 'Anda harus login untuk checkout.' }
   }
   const userId = session.user.id
 
-  // 2. Ambil data pelanggan
   const customer = await db.user.findUnique({ where: { id: userId } })
   if (!customer) {
     return { status: 'error', message: 'Akun pelanggan tidak ditemukan.' }
   }
 
-  // 3. [AFFILIATE] Cek Cookie (Next.js 15 fix: await cookies())
   const cookieStore = await cookies()
   const affiliateCode = cookieStore.get('sossilver_affiliate')?.value
-  let affiliateId = null
+  let affiliateId: string | null = null
 
   if (affiliateCode) {
     const affiliateUser = await db.user.findUnique({
       where: { affiliateCode: affiliateCode }
     })
-    // Pastikan tidak mereferensikan diri sendiri
     if (affiliateUser && affiliateUser.id !== userId) {
       affiliateId = affiliateUser.id
     }
   }
 
-  // 4. Ambil Item Keranjang
   const cartItemsJSON = formData.get('cartItems') as string
   if (!cartItemsJSON) {
     return { status: 'error', message: 'Keranjang kosong.' }
@@ -273,10 +277,8 @@ export async function checkoutAction (
     return { status: 'error', message: 'Data keranjang tidak valid.' }
   }
 
-  // 5. Hitung Total & Verifikasi Harga
   let subTotal = 0
   try {
-    // Ambil harga terbaru dari DB untuk keamanan
     const productPrices = await Promise.all(
       itemsInput.map(item =>
         db.sossilverProduct.findUnique({
@@ -297,7 +299,6 @@ export async function checkoutAction (
         }
       }
 
-      // Gunakan harga & gramasi dari DB
       subTotal += product.hargaJual * item.quantity
       item.priceAtTime = product.hargaJual
       item.gramasi = product.gramasi
@@ -306,27 +307,24 @@ export async function checkoutAction (
     return { status: 'error', message: 'Gagal memverifikasi harga produk.' }
   }
 
-  const totalAmount = subTotal // Ongkir & diskon 0 di awal
-  const invoiceNumber = `INV-${Date.now()}`
+  const { totalAmount } = calculateTotals(subTotal, 0, 0)
+  const invoiceNumber = generateInvoiceNumber()
 
   try {
     const newInvoice = await db.invoice.create({
       data: {
         invoiceNumber,
         totalAmount,
-        subTotal, // [PENTING] Simpan subTotal
+        subTotal,
         shippingFee: 0,
         discountPercent: 0,
-        status: 'MENUNGGU_KONFIRMASI_ADMIN', // Status awal checkout
+        status: 'MENUNGGU_KONFIRMASI_ADMIN',
         customerName: customer.name || customer.email || 'Customer',
-        customerPhone: (formData.get('customerPhone') as string) || null, // Ambil dari form
-        customerAddress: (formData.get('customerAddress') as string) || null, // Ambil dari form
+        customerPhone: (formData.get('customerPhone') as string) || null,
+        customerAddress: (formData.get('customerAddress') as string) || null,
         createdById: userId,
         customerId: userId,
-
-        // [AFFILIATE] Simpan ID Affiliate
         affiliateId: affiliateId,
-
         items: {
           create: itemsInput.map(item => ({
             productId: item.productId,
@@ -350,16 +348,11 @@ export async function checkoutAction (
   }
 }
 
-/**
- * 6. UPDATE STATUS & HITUNG KOMISI AFFILIATE
- * - Admin mengubah status
- * - Jika SELESAI -> Hitung komisi 1.2%
- */
+// ... (updateInvoiceStatusAction TETAP SAMA) ...
 export async function updateInvoiceStatusAction (
   prevState: InvoiceState,
   formData: FormData
 ): Promise<InvoiceState> {
-  // 1. Validasi Input
   const validatedFields = UpdateStatusSchema.safeParse({
     id: formData.get('id'),
     status: formData.get('status')
@@ -374,40 +367,27 @@ export async function updateInvoiceStatusAction (
   }
 
   const { id, status } = validatedFields.data
-
-  // 2. Cek Hak Akses Admin
   const session = await auth()
-  if (!session?.user?.id || session.user.role !== 'ADMIN') {
+  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
     return { status: 'error', message: 'Akses ditolak.' }
   }
 
   try {
-    // 3. Ambil data invoice lama
     const existingInvoice = await db.invoice.findUnique({
       where: { id },
-      include: { commission: true } // Cek komisi lama
+      include: { commission: true }
     })
-
-    if (!existingInvoice) {
+    if (!existingInvoice)
       return { status: 'error', message: 'Invoice tidak ditemukan.' }
-    }
 
-    // 4. Update Status
-    await db.invoice.update({
-      where: { id },
-      data: { status }
-    })
+    await db.invoice.update({ where: { id }, data: { status } })
 
-    // 5. [LOGIKA KOMISI AFFILIATE]
-    // Syarat: Status SELESAI (atau PAID), ada Affiliate, dan belum ada komisi tercatat
     if (
       (status === 'SELESAI' || status === 'PAID') &&
       existingInvoice.affiliateId &&
       !existingInvoice.commission
     ) {
-      // Hitung 1.2% dari Subtotal (Harga barang saja, tanpa ongkir)
       const commissionAmount = Math.floor(existingInvoice.subTotal * 0.012)
-
       if (commissionAmount > 0) {
         await db.affiliateCommission.create({
           data: {
@@ -417,7 +397,6 @@ export async function updateInvoiceStatusAction (
             invoiceId: existingInvoice.id
           }
         })
-        console.log(`💰 Komisi Rp${commissionAmount} dibuat untuk affiliate.`)
       }
     }
 
@@ -428,7 +407,7 @@ export async function updateInvoiceStatusAction (
 
     return {
       status: 'success',
-      message: `Status diperbarui menjadi ${status}. Komisi dihitung jika berlaku.`
+      message: `Status diperbarui menjadi ${status}.`
     }
   } catch (error) {
     console.error('Error update status:', error)
@@ -436,9 +415,7 @@ export async function updateInvoiceStatusAction (
   }
 }
 
-/**
- * 7. Konfirmasi Harga (Admin mengisi Ongkir & Diskon)
- */
+// ... (confirmInvoicePriceAction TETAP SAMA) ...
 export async function confirmInvoicePriceAction (
   prevState: InvoiceState,
   formData: FormData
@@ -460,7 +437,7 @@ export async function confirmInvoicePriceAction (
   const { id, shippingFee, discountPercent } = validatedFields.data
   const session = await auth()
 
-  if (!session?.user?.id || session.user.role !== 'ADMIN') {
+  if (!session?.user?.id || session.user.role !== Role.ADMIN) {
     return { status: 'error', message: 'Akses ditolak.' }
   }
 
@@ -473,10 +450,10 @@ export async function confirmInvoicePriceAction (
     if (!invoice)
       return { status: 'error', message: 'Invoice tidak ditemukan.' }
 
-    // Hitung total baru
-    const discountAmount = (invoice.subTotal * discountPercent) / 100
-    const totalAmount = Math.round(
-      invoice.subTotal - discountAmount + shippingFee
+    const { totalAmount } = calculateTotals(
+      invoice.subTotal,
+      shippingFee,
+      discountPercent
     )
 
     await db.invoice.update({
@@ -485,7 +462,7 @@ export async function confirmInvoicePriceAction (
         shippingFee,
         discountPercent,
         totalAmount,
-        status: 'UNPAID' // Kembalikan ke UNPAID agar user bisa bayar
+        status: 'UNPAID'
       }
     })
 
@@ -502,9 +479,9 @@ export async function confirmInvoicePriceAction (
   }
 }
 
-/**
- * 8. Upload Bukti Bayar
- */
+// =======================================================
+// 8. Upload Bukti Bayar (DIPERBAIKI: Menggunakan File System)
+// =======================================================
 export async function addPaymentProofAction (
   prevState: InvoiceState,
   formData: FormData
@@ -517,42 +494,97 @@ export async function addPaymentProofAction (
     return { status: 'error', message: 'File wajib diisi.' }
   if (file.size > 5 * 1024 * 1024)
     return { status: 'error', message: 'Max 5MB.' }
+
   const ext = file.name.split('.').pop()?.toLowerCase()
   if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext || '')) {
     return { status: 'error', message: 'Format file tidak didukung.' }
   }
 
   try {
+    // Cek invoice
     const existingInvoice = await db.invoice.findUnique({
       where: { id: invoiceId },
-      select: { paymentProofUrl: true, status: true }
+      select: { paymentProofUrl: true, status: true, customerId: true }
     })
 
     if (!existingInvoice)
       return { status: 'error', message: 'Invoice tidak ditemukan.' }
 
-    // Hapus file lama jika ada
-    if (existingInvoice.paymentProofUrl) {
-      try {
-        await del(existingInvoice.paymentProofUrl)
-      } catch (e) {}
+    // Cek permission (jika customer, harus miliknya sendiri)
+    const session = await auth()
+    if (
+      session?.user?.role === 'CUSTOMER' &&
+      existingInvoice.customerId !== session.user.id
+    ) {
+      return { status: 'error', message: 'Bukan invoice Anda.' }
     }
 
-    // Upload ke Vercel Blob
-    const filename = `proof-${invoiceId}-${Date.now()}.${ext}`
-    const blob = await put(filename, file, { access: 'public' })
+    // --- PROSES UPLOAD LOKAL (Local File System) ---
 
-    // Update DB
+    // 1. Buat nama file unik
+    const uniqueFileName = `proof-${invoiceId}-${Date.now()}.${ext}`
+
+    // 2. Tentukan direktori tujuan: public/uploads/payment-proofs
+    // (process.cwd() adalah root project Anda)
+    const uploadDir = path.join(
+      process.cwd(),
+      'public',
+      'uploads',
+      'payment-proofs'
+    )
+
+    // 3. Pastikan folder ada, jika tidak buat foldernya
+    try {
+      await fs.mkdir(uploadDir, { recursive: true })
+    } catch (err) {
+      console.error('Gagal membuat direktori upload:', err)
+      return {
+        status: 'error',
+        message: 'Gagal menyiapkan folder penyimpanan.'
+      }
+    }
+
+    // 4. Konversi file ke Buffer dan tulis ke disk
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const filePath = path.join(uploadDir, uniqueFileName)
+    await fs.writeFile(filePath, buffer)
+
+    // 5. Buat URL publik (Path relatif dari folder 'public')
+    // Ini yang akan disimpan di database
+    const fileUrl = `/uploads/payment-proofs/${uniqueFileName}`
+
+    // 6. Hapus file lama jika ada (untuk menghemat ruang)
+    if (
+      existingInvoice.paymentProofUrl &&
+      existingInvoice.paymentProofUrl.startsWith('/uploads/')
+    ) {
+      try {
+        // Gabungkan root project + path file lama
+        const oldFilePath = path.join(
+          process.cwd(),
+          'public',
+          existingInvoice.paymentProofUrl
+        )
+        await fs.unlink(oldFilePath)
+      } catch (e) {
+        console.warn('Gagal menghapus file bukti lama:', e)
+      }
+    }
+    // ---------------------------------------------
+
+    // Update Database
     await db.invoice.update({
       where: { id: invoiceId },
       data: {
-        paymentProofUrl: blob.url,
+        paymentProofUrl: fileUrl, // Simpan path relatif
         status: 'WAITING_VERIFICATION'
       }
     })
 
+    // Revalidasi Cache
     revalidatePath(`/dashboard/invoice/${invoiceId}`)
     revalidatePath('/myaccount')
+    revalidateTag(`invoice-${invoiceId}`)
 
     return { status: 'success', message: 'Bukti bayar berhasil diupload.' }
   } catch (error) {
@@ -561,10 +593,7 @@ export async function addPaymentProofAction (
   }
 }
 
-/**
- * 9. Beli Cepat (Customer - Direct Order)
- * - Mencegah self-referral
- */
+// ... (createCustomerOrderAction TETAP SAMA) ...
 export async function createCustomerOrderAction (
   formData: FormData
 ): Promise<void> {
@@ -575,15 +604,12 @@ export async function createCustomerOrderAction (
   const userId = session.user.id
   const productId = formData.get('productId') as string
 
-  // [AFFILIATE] Cek Cookie untuk Beli Cepat (Next.js 15 fix)
   const cookieStore = await cookies()
   const affiliateCode = cookieStore.get('sossilver_affiliate')?.value
-  let affiliateId = null
+  let affiliateId: string | null = null
 
   if (affiliateCode) {
     const affiliateUser = await db.user.findUnique({ where: { affiliateCode } })
-
-    // [PENTING] Logika Pencegahan Self-Referral
     if (affiliateUser && affiliateUser.id !== userId) {
       affiliateId = affiliateUser.id
     }
@@ -604,14 +630,11 @@ export async function createCustomerOrderAction (
         subTotal: product.hargaJual,
         shippingFee: 0,
         discountPercent: 0,
-        status: 'UNPAID', // Atau MENUNGGU_KONFIRMASI jika perlu ongkir
+        status: 'UNPAID',
         customerName: customer.name || customer.email || 'Customer',
         createdById: userId,
         customerId: userId,
-
-        // [AFFILIATE] Simpan ID
         affiliateId: affiliateId,
-
         items: {
           create: [
             {

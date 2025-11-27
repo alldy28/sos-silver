@@ -69,7 +69,6 @@ export function ConfirmPriceForm({
             name="shippingFee"
             type="number"
             defaultValue="0"
-            required
             className="bg-white"
             disabled={isPending}
           />
