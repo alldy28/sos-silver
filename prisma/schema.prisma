@@ -69,7 +69,7 @@ model PriceImage {
 model AffiliateCommission {
   id          String   @id @default(cuid())
   amount      Int      // Jumlah komisi (Rupiah)
-  percentage  Float    // Persentase yang dipakai (1.2%)
+  percentage  Float    // Persentase yang dipakai (2.5%)
   
   // Relasi ke Affiliate (User)
   affiliateId String

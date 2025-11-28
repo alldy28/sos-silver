@@ -387,12 +387,12 @@ export async function updateInvoiceStatusAction (
       existingInvoice.affiliateId &&
       !existingInvoice.commission
     ) {
-      const commissionAmount = Math.floor(existingInvoice.subTotal * 0.012)
+      const commissionAmount = Math.floor(existingInvoice.subTotal * 0.025)
       if (commissionAmount > 0) {
         await db.affiliateCommission.create({
           data: {
             amount: commissionAmount,
-            percentage: 1.2,
+            percentage: 2.5,
             affiliateId: existingInvoice.affiliateId,
             invoiceId: existingInvoice.id
           }

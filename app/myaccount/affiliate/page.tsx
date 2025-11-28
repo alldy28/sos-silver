@@ -49,7 +49,7 @@ export default async function AffiliatePage() {
               </div>
               <h3 className="font-semibold mb-2">Dapat Komisi</h3>
               <p className="text-sm text-gray-500">
-                Terima komisi <strong>1.2%</strong> dari setiap transaksi
+                Terima komisi <strong>2.5%</strong> dari setiap transaksi
                 sukses.
               </p>
             </div>
@@ -172,7 +172,7 @@ export default async function AffiliatePage() {
                     <th className="px-6 py-4 whitespace-nowrap">Pelanggan</th>
                     <th className="px-6 py-4 whitespace-nowrap">No. Invoice</th>
                     <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Komisi (1.2%)
+                      Komisi (2.5%)
                     </th>
                   </tr>
                 </thead>
