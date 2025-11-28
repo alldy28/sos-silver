@@ -3,18 +3,20 @@ import { auth } from "@/auth";
 import { getAffiliateData } from "@/actions/affiliate-actions";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Share2,
   Users,
   DollarSign,
   Link as LinkIcon,
   AlertCircle,
+  Copy,
+  MessageCircle,
 } from "lucide-react";
 import { ActivateAffiliateForm } from "../components/ActivateAffiliateForm";
-import { ReferralLinkCard } from "./components/ReferralLinkCard";
 import { PayoutSection } from "./components/PayoutSection";
 
-// Types
+// --- Types ---
 interface CommissionLog {
   id: string;
   createdAt: string | Date;
@@ -36,13 +38,14 @@ interface AffiliateData {
   payouts: any[];
 }
 
-// Utility functions
+// --- Utility Functions ---
 const getBaseUrl = (): string => {
   const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
 
   if (!baseUrl) {
     console.error("NEXTAUTH_URL atau NEXT_PUBLIC_APP_URL tidak diset");
-    throw new Error("Base URL configuration missing");
+    // Fallback aman agar tidak error 500
+    return "https://sossilver.com";
   }
 
   return baseUrl;
@@ -77,6 +80,7 @@ const formatCurrency = (amount: number | undefined | null): string => {
   return amount.toLocaleString("id-ID");
 };
 
+// --- Components ---
 const ErrorFallback = () => (
   <div className="flex items-center justify-center py-12 px-4">
     <div className="w-full max-w-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
@@ -96,6 +100,7 @@ const ErrorFallback = () => (
   </div>
 );
 
+// --- MAIN PAGE COMPONENT ---
 export default async function AffiliatePage() {
   const session = await auth();
   if (!session?.user) redirect("/login-customer");
@@ -176,6 +181,10 @@ export default async function AffiliatePage() {
   // --- KONDISI 2: SUDAH JADI AFFILIATE (DASHBOARD) ---
   const baseUrl = getBaseUrl();
   const referralLink = `${baseUrl}/produk?ref=${data.code || ""}`;
+  const whatsappUrl = `https://wa.me/?text=Beli%20produk%20silver%20berkualitas%20di%20Sossilver!%20Cek%20di%20sini:%20${encodeURIComponent(
+    referralLink
+  )}`;
+
   const { totalCommission, availableBalance, history, payouts } = data;
   const hasHistory = history && history.length > 0;
 
@@ -190,10 +199,61 @@ export default async function AffiliatePage() {
         </p>
       </div>
 
-      <ReferralLinkCard
-        referralLink={referralLink}
-        referralCode={data.code || ""}
-      />
+      {/* --- INLINED REFERRAL LINK CARD (Server Component Version) --- */}
+      <Card className="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white border-none shadow-lg overflow-hidden relative">
+        {/* Hiasan background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+        </div>
+
+        <CardContent className="p-6 md:p-8 relative z-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+              <p className="text-indigo-100 font-medium mb-1">
+                Link Referral Anda
+              </p>
+              <h3 className="text-2xl font-bold">Bagikan & Dapatkan Komisi</h3>
+            </div>
+            <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/30 whitespace-nowrap">
+              <span className="text-xs text-indigo-200 uppercase tracking-wider block">
+                Kode Referral
+              </span>
+              <span className="text-xl font-mono font-bold">{data.code}</span>
+            </div>
+          </div>
+
+          <div className="bg-black/20 p-4 rounded-xl flex flex-col sm:flex-row gap-3 items-center border border-white/10">
+            <Share2 className="w-5 h-5 text-indigo-200 hidden sm:block flex-shrink-0" />
+
+            <code className="flex-1 text-sm sm:text-base font-mono break-all text-white overflow-hidden select-all">
+              {referralLink}
+            </code>
+
+            {/* Tombol Share WhatsApp (Pengganti Copy Button agar bisa 1 file) */}
+            <Button
+              asChild
+              variant="secondary"
+              size="sm"
+              className="shrink-0 bg-white text-indigo-700 hover:bg-indigo-50 transition-all duration-200 min-w-[100px]"
+            >
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Bagikan ke WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Share WA
+              </a>
+            </Button>
+          </div>
+
+          <p className="text-sm text-indigo-200 mt-4">
+            Bagikan link ini ke media sosial. Komisi otomatis cair saat pesanan
+            statusnya SELESAI.
+          </p>
+        </CardContent>
+      </Card>
 
       <PayoutSection availableBalance={availableBalance} payouts={payouts} />
 
