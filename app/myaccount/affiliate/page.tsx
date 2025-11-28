@@ -1,16 +1,25 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { auth } from "@/auth";
 import { getAffiliateData } from "@/actions/affiliate-actions";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Share2, Users, DollarSign, Link as LinkIcon } from "lucide-react";
-// [NEW] Import the client form
+// [FIX] Ensure this path is correct based on where you saved the file.
+// If saved in app/myaccount/affiliate/components/, use "./components/ActivateAffiliateForm"
 import { ActivateAffiliateForm } from "../components/ActivateAffiliateForm";
+// [FIX] Ensure this path is correct
+import { ReferralLinkCard } from "./components/ReferralLinkCard";
+import { PayoutSection } from "./components/PayoutSection";
 
 export default async function AffiliatePage() {
   const session = await auth();
   if (!session?.user) redirect("/login-customer");
 
   const data = await getAffiliateData();
+
+  
+
+
 
   // --- KONDISI 1: BELUM DAFTAR AFFILIATE ---
   if (!data || !data.isAffiliate) {
@@ -56,7 +65,6 @@ export default async function AffiliatePage() {
           </div>
 
           <div className="pt-8">
-            {/* [FIX] Use the Client Component here */}
             <ActivateAffiliateForm />
           </div>
         </div>
@@ -66,9 +74,7 @@ export default async function AffiliatePage() {
 
   // --- KONDISI 2: SUDAH JADI AFFILIATE (DASHBOARD) ---
   const referralLink = `${process.env.NEXTAUTH_URL || "https://sossilver.co.id"}/produk?ref=${data.code}`;
-
-  // [FIX] Ensure numbers are safe to use (defaults to 0 if undefined)
-  const totalCommission = data.totalCommission ?? 0;
+  const { totalCommission, availableBalance, history, payouts } = data;
   const historyCount = data.history ? data.history.length : 0;
 
   return (
@@ -82,68 +88,13 @@ export default async function AffiliatePage() {
         </p>
       </div>
 
-      <Card className="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white border-none shadow-lg overflow-hidden relative">
-        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
-        <CardContent className="p-6 md:p-8 relative z-10">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <div>
-              <p className="text-indigo-100 font-medium mb-1">
-                Link Referral Anda
-              </p>
-              <h3 className="text-2xl font-bold">Bagikan & Dapatkan Komisi</h3>
-            </div>
-            <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/30">
-              <span className="text-xs text-indigo-200 uppercase tracking-wider block">
-                Kode Referral
-              </span>
-              <span className="text-xl font-mono font-bold">{data.code}</span>
-            </div>
-          </div>
+      {/* [FIX] Ensure data.code is never null (fallback to empty string) */}
+      <ReferralLinkCard
+        referralLink={referralLink}
+        referralCode={data.code || ""}
+      />
 
-          <div className="bg-black/20 p-4 rounded-xl flex flex-col sm:flex-row gap-3 items-center">
-            <code className="flex-1 text-sm sm:text-base font-mono break-all text-indigo-50">
-              {referralLink}
-            </code>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-l-4 border-l-green-500 shadow-sm">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Total Komisi Cair
-              </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                Rp {totalCommission.toLocaleString("id-ID")}
-              </p>
-            </div>
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-full">
-              <DollarSign className="w-8 h-8" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-blue-500 shadow-sm">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Transaksi Referral
-              </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                {historyCount}{" "}
-                <span className="text-base font-normal text-gray-400">
-                  Pesanan
-                </span>
-              </p>
-            </div>
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full">
-              <Users className="w-8 h-8" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <PayoutSection availableBalance={availableBalance} payouts={payouts} />
 
       <Card className="shadow-sm">
         <CardHeader className="border-b bg-gray-50/50 dark:bg-gray-800/50 dark:border-gray-700">
@@ -177,8 +128,8 @@ export default async function AffiliatePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {/* [FIX] Removing 'any' type */}
-                  {data.history.map((log) => (
+                  {/* [FIX] Explicit type for log to avoid implicit 'any' errors if strictly checked */}
+                  {data.history.map((log: any) => (
                     <tr
                       key={log.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"

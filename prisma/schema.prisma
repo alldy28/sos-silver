@@ -33,32 +33,37 @@ model GeneratedCode {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
+  id                String    @id @default(cuid())
+  email             String    @unique
+  password          String
+  name              String?
   
-  // Kolom untuk Role dan Verifikasi (SAMA)
-  role          Role      @default(CUSTOMER)
-  emailVerified DateTime?
+  // [SEMPURNA] Kolom untuk Role dan Verifikasi
+  role              Role      @default(CUSTOMER)
+  emailVerified     DateTime?
   verificationToken String?   @unique
+
+  // --- [BARU] Field Affiliate ---
+  isAffiliate   Boolean   @default(false) // Apakah user ini affiliate?
+  affiliateCode String?   @unique         // Kode unik (misal: 'ALDI123')
+  
+  // Relasi Komisi (Uang yang didapat)
+  commissions   AffiliateCommission[]
+  
+  // [BARU] Relasi Payout (Permintaan Pencairan)
+  payouts       PayoutRequest[] 
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
 
-  // --- [BARU] Field Affiliate ---
-  isAffiliate   Boolean   @default(false) // Apakah user ini sudah aktifkan affiliate?
-  affiliateCode String?   @unique         // Kode unik (misal: 'ALDI123')
-
-  // Relasi Komisi (Uang yang didapat)
-  commissions   AffiliateCommission[]
+  // [SEMPURNA] Relasi 1: Invoice yang DIBUAT oleh Admin
+  createdInvoices Invoice[] @relation("AdminCreator")
+  
+  // [SEMPURNA] Relasi 2: Order yang DIMILIKI oleh Customer
+  orders          Invoice[] @relation("CustomerOwner")
 
   // [BARU] Invoice yang direferensikan oleh user ini (sebagai Affiliate)
   referredInvoices Invoice[] @relation("AffiliateReferral")
-
-  // Relasi Invoice Admin & Customer (SAMA)
-  createdInvoices Invoice[] @relation("AdminCreator")
-  orders          Invoice[] @relation("CustomerOwner")
 }
 
 model PriceImage {
@@ -146,6 +151,25 @@ model InvoiceItem {
 enum Role {
   ADMIN
   CUSTOMER
+}
+
+model PayoutRequest {
+  id            String   @id @default(cuid())
+  amount        Int
+  status        String   @default("PENDING") // PENDING, PROCESSED, REJECTED
+  
+  bankName      String
+  accountNumber String
+  accountName   String
+
+  // [BARU] Bukti Transfer dari Admin
+  proofUrl      String? 
+
+  affiliateId   String
+  affiliate     User     @relation(fields: [affiliateId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // [DIHAPUS] Enum InvoiceStatus dihapus
