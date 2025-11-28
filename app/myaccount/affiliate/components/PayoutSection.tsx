@@ -60,7 +60,7 @@ export function PayoutSection({
             Cairkan Komisi
           </Button>
           <p className="text-xs text-indigo-400 mt-2 text-center">
-            Minimal penarikan Rp 10.000
+            Minimal penarikan Rp 50.000
           </p>
         </CardContent>
       </Card>

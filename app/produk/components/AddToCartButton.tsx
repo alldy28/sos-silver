@@ -45,7 +45,7 @@ export function AddToCartButton({ product, isLoggedIn }: AddToCartButtonProps) {
     return (
       <Button
         asChild
-        className="w-full bg-gray-600 hover:bg-gray-700"
+        className="w-full bg-blue-300 hover:bg-blue-500"
         variant="outline"
       >
         <Link href={loginUrl}>

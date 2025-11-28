@@ -10,6 +10,7 @@ import {
   MenuIcon,
   BarChart3,
   Package,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; // Hook untuk cek URL aktif
@@ -49,6 +50,11 @@ const navLinks = [
     href: "/dashboard/laporan",
     icon: BarChart3,
     label: "Laporan",
+  },
+  {
+    href: "/dashboard/payouts",
+    icon: Wallet, // Menggunakan Wallet untuk membedakan dengan Laporan
+    label: "Komisi Affiliate",
   },
 ];
 

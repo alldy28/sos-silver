@@ -98,7 +98,7 @@ export function RequestPayoutModal({
               <Input
                 id="bankName"
                 name="bankName"
-                placeholder="BCA / Mandiri / GoPay"
+                placeholder="NAMA BANK"
                 required
               />
             </div>
