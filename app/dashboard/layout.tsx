@@ -11,6 +11,7 @@ import {
   BarChart3,
   Package,
   Wallet,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; // Hook untuk cek URL aktif
@@ -55,6 +56,11 @@ const navLinks = [
     href: "/dashboard/payouts",
     icon: Wallet, // Menggunakan Wallet untuk membedakan dengan Laporan
     label: "Komisi Affiliate",
+  },
+  {
+    href: "/dashboard/customers", // URL halaman baru
+    icon: Users,
+    label: "Pelanggan & Affiliate",
   },
 ];
 
