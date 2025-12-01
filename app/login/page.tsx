@@ -61,6 +61,16 @@ function LoginForm() {
         </div>
       </div>
 
+      <div className="flex items-center justify-end">
+        {/* [BARU] Link Lupa Password */}
+        <Link
+          href="/auth/forgot-password"
+          className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+        >
+          Lupa password?
+        </Link>
+      </div>
+
       {errorMessage && (
         <div className="flex items-center p-3 text-sm text-red-700 bg-red-100 rounded-md border border-red-200">
           <AlertTriangle className="w-5 h-5 mr-2 shrink-0" />

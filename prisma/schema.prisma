@@ -43,6 +43,12 @@ model User {
   emailVerified     DateTime?
   verificationToken String?   @unique
 
+  resetPasswordToken String? @unique
+  resetPasswordExpires DateTime?
+
+  resetPasswordAttempts Int       @default(0)
+  resetPasswordLastAttempt DateTime?
+
   // --- [BARU] Field Affiliate ---
   isAffiliate   Boolean   @default(false) // Apakah user ini affiliate?
   affiliateCode String?   @unique         // Kode unik (misal: 'ALDI123')
