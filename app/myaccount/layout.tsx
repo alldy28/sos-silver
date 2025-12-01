@@ -1,7 +1,7 @@
 import { auth } from "@/auth"; // Impor helper auth Anda
 import { db } from "@/lib/db"; // Impor Prisma client
 import { redirect } from "next/navigation";
-import { CreditCard, LogOut, Package, User } from "lucide-react";
+import { CreditCard, LogOut, Package, User, Users } from "lucide-react";
 import Link from "next/link";
 import { logoutAction } from "@/actions/auth-actions"; // Impor server action logout
 import { Role } from "@prisma/client";
@@ -65,6 +65,13 @@ export default async function MyAccountLayout({
               >
                 <CreditCard className="w-4 h-4" />
                 Metode Pembayaran
+              </Link>
+              <Link
+                href="/myaccount/affiliate" // [BARU] Link ke halaman Pembayaran
+                className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+              >
+                <Users className="w-4 h-4" />
+                Dashboard Affiliate
               </Link>
               <div className="pt-2 border-t dark:border-gray-700">
                 <form action={logoutAction} className="w-full">
