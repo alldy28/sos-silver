@@ -184,7 +184,7 @@ export async function forgotPasswordAction (
 // --- Reset Password Action (New) ---
 
 export type ResetPasswordState = {
-  status: 'success' | 'error'
+  status: 'success' | 'error' | 'info'
   message: string
 }
 

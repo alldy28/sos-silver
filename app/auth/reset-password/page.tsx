@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
+// Pastikan import action dan tipe benar
 import {
   resetPasswordAction,
   type ResetPasswordState,
@@ -20,13 +21,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const initialState: ResetPasswordState = { status: "success", message: "" };
+// [PERBAIKAN] initialState sekarang valid karena tipe di actions sudah support 'info'
+const initialState: ResetPasswordState = { status: "info", message: "" };
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const router = useRouter();
 
+  // [PERBAIKAN] Hook ini sekarang seharusnya tidak error
   const [state, formAction, isPending] = useActionState(
     resetPasswordAction,
     initialState
@@ -165,12 +168,11 @@ function ResetPasswordContent() {
                 disabled={isPending}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 py-6"
               >
-                <span className="flex items-center justify-center gap-2">
-                  {isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : null}
-                  {isPending ? "Menyimpan..." : "Simpan Password Baru"}
-                </span>
+                {isPending ? (
+                  <Loader2 className="animate-spin mr-2" />
+                ) : (
+                  "Simpan Password Baru"
+                )}
               </Button>
             </div>
           </form>
@@ -197,6 +199,7 @@ function ResetPasswordLoading() {
   );
 }
 
+// [PERBAIKAN] Tambahkan Suspense untuk mengatasi error useSearchParams pada pre-render
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={<ResetPasswordLoading />}>
