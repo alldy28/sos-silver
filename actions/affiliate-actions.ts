@@ -98,6 +98,7 @@ export async function getAffiliateData () {
   const user = await db.user.findUnique({
     where: { id: session.user.id },
     include: {
+      // Riwayat Komisi
       commissions: {
         include: {
           invoice: {
@@ -106,14 +107,29 @@ export async function getAffiliateData () {
         },
         orderBy: { createdAt: 'desc' }
       },
+      // Riwayat Pencairan
       payouts: {
         orderBy: { createdAt: 'desc' }
+      },
+      // [BARU] Daftar Pelanggan Referral
+      referredInvoices: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          customerName: true,
+          customerPhone: true, // Untuk tombol WA
+          status: true,
+          totalAmount: true,
+          createdAt: true
+        }
       }
     }
   })
 
   if (!user) return null
 
+  // Jika belum jadi affiliate, kembalikan objek kosong yang aman
   if (!user.isAffiliate) {
     return {
       isAffiliate: false,
@@ -123,23 +139,30 @@ export async function getAffiliateData () {
       pendingPayout: 0,
       paidPayout: 0,
       history: [],
-      payouts: []
+      payouts: [],
+      referrals: []
     }
   }
 
+  // --- PERHITUNGAN SALDO ---
+
+  // Total semua komisi yang pernah didapat
   const totalCommission = user.commissions.reduce(
     (acc, curr) => acc + curr.amount,
     0
   )
 
+  // Total uang yang sedang diajukan pencairannya (PENDING)
   const pendingPayout = user.payouts
     .filter(p => p.status === 'PENDING')
     .reduce((acc, curr) => acc + curr.amount, 0)
 
+  // Total uang yang SUDAH dicairkan (PROCESSED)
   const paidPayout = user.payouts
     .filter(p => p.status === 'PROCESSED')
     .reduce((acc, curr) => acc + curr.amount, 0)
 
+  // Saldo yang BISA ditarik saat ini
   const availableBalance = totalCommission - paidPayout - pendingPayout
 
   return {
@@ -150,9 +173,11 @@ export async function getAffiliateData () {
     pendingPayout,
     paidPayout,
     history: user.commissions,
-    payouts: user.payouts
+    payouts: user.payouts,
+    referrals: user.referredInvoices // Data referral
   }
 }
+
 
 const PayoutSchema = z.object({
   bankName: z.string().min(1, 'Nama Bank wajib diisi'),

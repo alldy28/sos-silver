@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { auth } from "@/auth";
 import { getAffiliateData } from "@/actions/affiliate-actions";
 import { redirect } from "next/navigation";
@@ -6,25 +5,45 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Share2,
-  Users,
   DollarSign,
   Link as LinkIcon,
   AlertCircle,
-  Copy,
   MessageCircle,
 } from "lucide-react";
-import { ActivateAffiliateForm } from "../components/ActivateAffiliateForm";
+// Pastikan path import komponen ini benar sesuai struktur folder Anda
+import { ActivateAffiliateForm } from "./components/ActivateAffiliateForm";
 import { PayoutSection } from "./components/PayoutSection";
+import { ReferralCustomerTable } from "./components/ReferralCustomerTable";
 
-// --- Types ---
+// --- Definisi Tipe Data ---
 interface CommissionLog {
   id: string;
-  createdAt: string | Date;
+  createdAt: Date | string;
   amount: number;
   invoice: {
     customerName: string;
     invoiceNumber: string;
   };
+}
+
+interface PayoutLog {
+  id: string;
+  amount: number;
+  status: string;
+  bankName: string;
+  accountNumber: string;
+  createdAt: Date | string;
+}
+
+// [BARU] Tipe untuk data referral pelanggan
+interface ReferralCustomer {
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  customerPhone: string | null;
+  status: string;
+  totalAmount: number;
+  createdAt: Date | string;
 }
 
 interface AffiliateData {
@@ -35,81 +54,59 @@ interface AffiliateData {
   pendingPayout: number;
   paidPayout: number;
   history: CommissionLog[];
-  payouts: any[];
+  payouts: PayoutLog[];
+  // [BARU] Tambahkan field ini
+  referrals: ReferralCustomer[];
 }
 
-// --- Utility Functions ---
+// --- Helper Functions ---
+
 const getBaseUrl = (): string => {
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
-
-  if (!baseUrl) {
-    console.error("NEXTAUTH_URL atau NEXT_PUBLIC_APP_URL tidak diset");
-    // Fallback aman agar tidak error 500
-    return "https://sossilver.com";
-  }
-
-  return baseUrl;
+  return process.env.NEXTAUTH_URL || "http://localhost:3000";
 };
 
 const formatDate = (dateString: string | Date | undefined | null): string => {
-  if (!dateString) return "Tanggal tidak valid";
-
+  if (!dateString) return "-";
   try {
     const date = new Date(dateString);
-
-    if (isNaN(date.getTime())) {
-      return "Tanggal tidak valid";
-    }
-
+    if (isNaN(date.getTime())) return "-";
     return date.toLocaleDateString("id-ID", {
       day: "numeric",
-      month: "long",
+      month: "short",
       year: "numeric",
     });
   } catch (error) {
-    console.error("Error formatting date:", error);
-    return "Tanggal tidak valid";
+    return "-";
   }
 };
 
 const formatCurrency = (amount: number | undefined | null): string => {
-  if (amount === null || amount === undefined || isNaN(amount)) {
-    return "0";
-  }
-
+  if (amount == null || isNaN(amount)) return "0";
   return amount.toLocaleString("id-ID");
 };
 
-// --- Components ---
 const ErrorFallback = () => (
   <div className="flex items-center justify-center py-12 px-4">
-    <div className="w-full max-w-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-      <div className="flex gap-3">
-        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <h3 className="font-semibold text-red-800 dark:text-red-200">
-            Gagal Memuat Data
-          </h3>
-          <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-            Terjadi kesalahan saat memuat data affiliate. Silakan coba lagi atau
-            hubungi support.
-          </p>
-        </div>
-      </div>
+    <div className="w-full max-w-md bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+      <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+      <h3 className="font-semibold text-red-800">Gagal Memuat Data</h3>
+      <p className="text-sm text-red-700 mt-1">Silakan coba lagi nanti.</p>
     </div>
   </div>
 );
 
-// --- MAIN PAGE COMPONENT ---
 export default async function AffiliatePage() {
   const session = await auth();
   if (!session?.user) redirect("/login-customer");
 
-  // Error handling untuk getAffiliateData
   let data: AffiliateData | null = null;
 
   try {
-    data = await getAffiliateData();
+    // Pastikan getAffiliateData di actions/affiliate-actions.ts
+    // sudah diupdate untuk mengembalikan field 'referrals' juga.
+    // Jika belum, Anda perlu update action tersebut.
+    // (Lihat catatan di bawah kode ini)
+    data = (await getAffiliateData()) as unknown as AffiliateData;
   } catch (error) {
     console.error("Error fetching affiliate data:", error);
     return <ErrorFallback />;
@@ -118,59 +115,49 @@ export default async function AffiliatePage() {
   // --- KONDISI 1: BELUM DAFTAR AFFILIATE ---
   if (!data || !data.isAffiliate) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4">
-        <div className="w-full max-w-2xl text-center space-y-6">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Program Affiliate Sossilver
-          </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            Bergabunglah dengan program kami dan dapatkan penghasilan tambahan!
-          </p>
+      <div className="flex flex-col items-center justify-center py-12 px-4 min-h-[60vh]">
+        <div className="w-full max-w-4xl text-center space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+              Program Affiliate Sossilver
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Dapatkan penghasilan tambahan dengan mereferensikan produk kami!
+            </p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700">
-              <div
-                className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4"
-                role="img"
-                aria-label="Ikon dapatkan link referral"
-              >
-                <LinkIcon className="w-6 h-6" aria-hidden="true" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* ... (Bagian Benefit sama seperti sebelumnya) ... */}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700 flex flex-col items-center">
+              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4">
+                <LinkIcon className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold mb-2">Dapatkan Link</h3>
+              <h3 className="font-semibold mb-2">1. Dapatkan Link</h3>
               <p className="text-sm text-gray-500">
-                Aktifkan akun dan dapatkan link referral unik Anda.
+                Dapatkan link referral unik Anda.
               </p>
             </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700">
-              <div
-                className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
-                role="img"
-                aria-label="Ikon bagikan ke media sosial"
-              >
-                <Share2 className="w-6 h-6" aria-hidden="true" />
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700 flex flex-col items-center">
+              <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                <Share2 className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold mb-2">Bagikan</h3>
+              <h3 className="font-semibold mb-2">2. Bagikan</h3>
               <p className="text-sm text-gray-500">
-                Share link ke teman atau media sosial Anda.
+                Share ke teman atau sosmed.
               </p>
             </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700">
-              <div
-                className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4"
-                role="img"
-                aria-label="Ikon dapatkan komisi"
-              >
-                <DollarSign className="w-6 h-6" aria-hidden="true" />
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border dark:border-gray-700 flex flex-col items-center">
+              <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mb-4">
+                <DollarSign className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold mb-2">Dapat Komisi</h3>
+              <h3 className="font-semibold mb-2">3. Terima Komisi</h3>
               <p className="text-sm text-gray-500">
-                Terima komisi <strong>2.5%</strong> dari setiap transaksi
-                sukses.
+                Dapatkan <strong>2.5%</strong> dari setiap transaksi sukses.
               </p>
             </div>
           </div>
 
-          <div className="pt-8">
+          <div className="pt-4 w-full max-w-md mx-auto">
             <ActivateAffiliateForm />
           </div>
         </div>
@@ -178,24 +165,29 @@ export default async function AffiliatePage() {
     );
   }
 
-  // --- KONDISI 2: SUDAH JADI AFFILIATE (DASHBOARD) ---
+  // --- KONDISI 2: DASHBOARD AFFILIATE ---
   const baseUrl = getBaseUrl();
   const referralLink = `${baseUrl}/produk?ref=${data.code || ""}`;
   const whatsappUrl = `https://wa.me/?text=Beli%20produk%20silver%20berkualitas%20di%20Sossilver!%20Cek%20di%20sini:%20${encodeURIComponent(
     referralLink
   )}`;
 
-  const { totalCommission, availableBalance, history, payouts } = data;
-  const hasHistory = history && history.length > 0;
+  const {
+    availableBalance = 0,
+    payouts = [],
+    history = [],
+    referrals = [],
+  } = data;
+  const historyCount = history.length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-6xl mx-auto">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Dashboard Affiliate
         </h2>
         <p className="text-gray-500 dark:text-gray-400">
-          Pantau kinerja referral dan komisi Anda di sini.
+          Pantau kinerja & komisi Anda.
         </p>
       </div>
 
@@ -257,64 +249,47 @@ export default async function AffiliatePage() {
 
       <PayoutSection availableBalance={availableBalance} payouts={payouts} />
 
+      <ReferralCustomerTable referrals={referrals} />
+
+      {/* 3. [BARU] Daftar Pelanggan Referral */}
+
+      {/* 4. Riwayat Komisi (Tetap Ada) */}
       <Card className="shadow-sm">
-        <CardHeader className="border-b bg-gray-50/50 dark:bg-gray-800/50 dark:border-gray-700">
-          <CardTitle className="text-lg">
-            Riwayat Komisi Masuk {hasHistory && `(${history.length})`}
+        <CardHeader className="border-b bg-gray-50/50">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-green-600" />
+            Riwayat Komisi Masuk
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {!hasHistory ? (
-            <div className="text-center py-12 px-4">
-              <div
-                className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400"
-                role="img"
-                aria-label="Ikon tidak ada komisi"
-              >
-                <DollarSign className="w-8 h-8" aria-hidden="true" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                Belum ada komisi
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
-                Bagikan link referral Anda sekarang untuk mulai mendapatkan
-                komisi dari setiap pembelian.
-              </p>
+          {/* ... (Kode tabel komisi Anda yang lama bisa ditaruh di sini) ... */}
+          {historyCount === 0 ? (
+            <div className="text-center py-8 px-4 text-gray-500 text-sm">
+              Belum ada komisi masuk.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table
-                className="w-full text-sm text-left"
-                aria-label="Tabel riwayat komisi masuk"
-              >
-                <thead className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 uppercase font-semibold">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-600 uppercase">
                   <tr>
-                    <th className="px-6 py-4 whitespace-nowrap">Tanggal</th>
-                    <th className="px-6 py-4 whitespace-nowrap">Pelanggan</th>
-                    <th className="px-6 py-4 whitespace-nowrap">No. Invoice</th>
-                    <th className="px-6 py-4 text-right whitespace-nowrap">
-                      Komisi (2.5%)
-                    </th>
+                    <th className="px-6 py-3">Tanggal</th>
+                    <th className="px-6 py-3">Dari Invoice</th>
+                    <th className="px-6 py-3 text-right">Komisi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {history.map((log: CommissionLog) => (
-                    <tr
-                      key={log.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                    >
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                <tbody className="divide-y">
+                  {history.map((log) => (
+                    <tr key={log.id}>
+                      <td className="px-6 py-3 text-gray-500">
                         {formatDate(log.createdAt)}
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                        {log.invoice?.customerName || "Tidak tersedia"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                          {log.invoice?.invoiceNumber || "-"}
+                      <td className="px-6 py-3">
+                        {log.invoice.invoiceNumber} <br />
+                        <span className="text-xs text-gray-400">
+                          {log.invoice.customerName}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-green-600 dark:text-green-400">
+                      <td className="px-6 py-3 text-right font-bold text-green-600">
                         + Rp {formatCurrency(log.amount)}
                       </td>
                     </tr>
