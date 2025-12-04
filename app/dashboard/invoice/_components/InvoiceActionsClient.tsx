@@ -7,13 +7,20 @@ import { useRouter } from "next/navigation";
 import {
   updateInvoiceStatusAction,
   addPaymentProofAction,
-  type InvoiceState, // <-- Impor tipe State
+  type InvoiceState,
 } from "../../../../actions/invoice-actions";
-import { Loader2, UploadCloud, CheckCircle, ExternalLink } from "lucide-react";
+// [UBAH 1] Tambahkan import Printer icon
+import {
+  Loader2,
+  UploadCloud,
+  CheckCircle,
+  ExternalLink,
+  Printer,
+} from "lucide-react";
 import Image from "next/image";
-import { Button } from "@/components/ui/button"; // [SOLUSI 2] Menggunakan shadcn Button
-import { Input } from "@/components/ui/input"; // Asumsi shadcn/ui
-import { Label } from "@/components/ui/label"; // Asumsi shadcn/ui
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface InvoiceActionsProps {
   invoiceId: string;
@@ -21,18 +28,12 @@ interface InvoiceActionsProps {
   currentProofUrl: string | null;
 }
 
-// Definisikan initial state untuk form
 const initialState: InvoiceState = {
   status: "info",
   message: "",
   errors: {},
 };
 
-/**
- * Tombol Submit untuk Form Upload
- * Menggunakan useFormStatus untuk menampilkan loading
- * (Tidak ada perubahan di sini)
- */
 function UploadButton({ isDisabled }: { isDisabled: boolean }) {
   const { pending } = useFormStatus();
   return (
@@ -72,11 +73,6 @@ function UploadButton({ isDisabled }: { isDisabled: boolean }) {
   );
 }
 
-/**
- * [SOLUSI 2] Tombol Submit untuk Form Update Status
- * Disederhanakan: Hanya menampilkan status loading/disabled
- * Menggunakan <Button> (shadcn)
- */
 function StatusButton({
   isDisabled,
   buttonText,
@@ -87,9 +83,8 @@ function StatusButton({
   const { pending } = useFormStatus();
 
   return (
-    <Button // <-- MENGGUNAKAN <Button> DARI SHADCN
+    <Button
       type="submit"
-      // TIDAK ADA 'name' ATAU 'value'
       disabled={isDisabled || pending}
       className="w-full bg-green-600 text-white shadow-md hover:bg-green-700 transition-colors disabled:bg-gray-400 px-4 py-2 rounded-md font-medium flex items-center justify-center gap-2"
     >
@@ -110,17 +105,14 @@ export function InvoiceActionsClient({
 }: InvoiceActionsProps) {
   const router = useRouter();
 
-  // --- State untuk Form Upload Bukti Bayar ---
   const [uploadState, uploadDispatch, isUploadPending] = useActionState(
     addPaymentProofAction,
     initialState
   );
 
-  // --- State untuk Form Ubah Status ---
   const [updateStatusState, updateStatusDispatch, isStatusPending] =
     useActionState(updateInvoiceStatusAction, initialState);
 
-  // --- Effect untuk memantau hasil upload ---
   useEffect(() => {
     if (uploadState.status === "success") {
       alert("Upload Sukses: " + uploadState.message);
@@ -130,7 +122,6 @@ export function InvoiceActionsClient({
     }
   }, [uploadState, router]);
 
-  // --- Effect untuk memantau hasil update status ---
   useEffect(() => {
     if (updateStatusState.status === "success") {
       alert("Update Status Sukses: " + updateStatusState.message);
@@ -140,13 +131,10 @@ export function InvoiceActionsClient({
     }
   }, [updateStatusState, router]);
 
-  // Kapan admin bisa upload? (Hanya jika UNPAID dan BELUM ADA BUKTI)
   const canUpload = currentStatus === "UNPAID" && !currentProofUrl;
-  // Kapan admin bisa update status? (Selama belum selesai atau batal)
   const canUpdateStatus =
     currentStatus !== "SELESAI" && currentStatus !== "CANCELLED";
 
-  // [SOLUSI 2] Logika status dipindahkan ke komponen utama
   const statusConfig = {
     UNPAID: "Tandai Lunas (PAID)",
     WAITING_VERIFICATION: "Konfirmasi Lunas (SEDANG_DISIAPKAN)",
@@ -166,14 +154,19 @@ export function InvoiceActionsClient({
     SEDANG_PENGIRIMAN: "SELESAI",
   };
 
-  // [SOLUSI 2] Hitung 'nextStatus' dan 'buttonText' di sini
   const nextStatus = nextStatusMap[currentStatus] || "PAID";
   const buttonText =
     statusConfig[currentStatus as StatusKey] || "Update Status";
 
-  // [SOLUSI 2] Cek apakah sudah selesai/dibatalkan
   const isFinishedOrCancelled =
     currentStatus === "SELESAI" || currentStatus === "CANCELLED";
+
+  // [UBAH 2] Handler untuk print label
+  const handlePrintLabel = () => {
+    // Sesuaikan URL ini dengan route halaman cetak Anda
+    // window.open: membuka di tab baru
+    window.open(`/dashboard/invoice/${invoiceId}/print`, "_blank");
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border dark:border-gray-700 p-6">
@@ -228,9 +221,7 @@ export function InvoiceActionsClient({
             Ubah Status Order
           </Label>
 
-          {/* [SOLUSI 2] Logika render dipindahkan ke sini */}
           {isFinishedOrCancelled ? (
-            // Jika Selesai atau Batal, tampilkan tombol disabled
             <Button
               type="button"
               disabled
@@ -245,15 +236,9 @@ export function InvoiceActionsClient({
               <span>{buttonText}</span>
             </Button>
           ) : (
-            // Jika belum selesai, tampilkan form
             <form action={updateStatusDispatch}>
               <input type="hidden" name="id" value={invoiceId} />
-
-              {/* [PERBAIKAN SOLUSI 2] 
-                  Tambahkan input tersembunyi untuk mengirim 'status'
-              */}
               <input type="hidden" name="status" value={nextStatus} />
-              {/* ----------------------------- */}
 
               <StatusButton
                 isDisabled={!canUpdateStatus}
@@ -266,6 +251,19 @@ export function InvoiceActionsClient({
                 </p>
               )}
             </form>
+          )}
+
+          {/* [UBAH 3] Tombol Print Label (Hanya Muncul Jika SEDANG_DISIAPKAN) */}
+          {currentStatus === "SEDANG_DISIAPKAN" && (
+            <Button
+              type="button"
+              variant="secondary" // Gunakan varian secondary/outline agar beda dengan tombol utama
+              onClick={handlePrintLabel}
+              className="w-full flex items-center justify-center gap-2 mt-2 border-dashed border-2 border-indigo-200 hover:border-indigo-400"
+            >
+              <Printer className="w-4 h-4" />
+              Cetak Label Pengiriman
+            </Button>
           )}
 
           {/* Tombol Batal (Form terpisah) */}

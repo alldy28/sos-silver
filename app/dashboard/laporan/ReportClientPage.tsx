@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,6 +24,13 @@ const formatDate = (date: Date) =>
     hour: "2-digit",
     minute: "2-digit",
   });
+
+// Pastikan tipe data ini sesuai dengan return dari server action Anda
+// Interface ini biasanya di import, tapi saya tulis disini untuk konteks
+// interface ReportRow {
+//   ...
+//   products: string; // <-- Pastikan ada field ini (misal: "Sepatu A (1), Kaos B (2)")
+// }
 
 export default function ReportClientPage() {
   const [startDate, setStartDate] = useState<string>("");
@@ -83,14 +91,19 @@ export default function ReportClientPage() {
       "No. Invoice",
       "Tanggal",
       "Pelanggan",
+      "Produk", // [UBAH 1] Tambah Header PDF
       "Status",
       "Total",
     ];
-    const tableRows = reportData.data.map((row, index) => [
+
+    // Asumsi row punya property 'products' (string)
+    // Jika data products berupa array, gunakan: row.products.map(p => p.name).join(", ")
+    const tableRows = reportData.data.map((row: any, index) => [
       index + 1,
       row.invoiceNumber,
       formatDate(row.date),
       row.customerName,
+      row.products || "-", // [UBAH 2] Isi Data Produk PDF
       row.status,
       formatCurrency(row.totalAmount),
     ]);
@@ -112,6 +125,7 @@ export default function ReportClientPage() {
       },
       columnStyles: {
         0: { cellWidth: 10 },
+        4: { cellWidth: 40 }, // Lebar kolom produk di PDF
       },
     });
 
@@ -131,6 +145,8 @@ export default function ReportClientPage() {
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+        {/* ... (Header & Filter Card Code SAMA seperti sebelumnya) ... */}
+
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
@@ -150,7 +166,6 @@ export default function ReportClientPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-0 sm:flex sm:flex-row sm:gap-3 sm:items-end">
-            {/* Start Date Input */}
             <div className="flex-1 space-y-2">
               <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                 Dari Tanggal
@@ -162,8 +177,6 @@ export default function ReportClientPage() {
                 className="w-full text-sm"
               />
             </div>
-
-            {/* End Date Input */}
             <div className="flex-1 space-y-2">
               <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                 Sampai Tanggal
@@ -175,8 +188,6 @@ export default function ReportClientPage() {
                 className="w-full text-sm"
               />
             </div>
-
-            {/* Button Group */}
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 onClick={handleFilter}
@@ -191,7 +202,6 @@ export default function ReportClientPage() {
                 <span className="hidden sm:inline">Tampilkan</span>
                 <span className="sm:hidden">Cari</span>
               </Button>
-
               {reportData && reportData.data.length > 0 && (
                 <Button
                   onClick={handleDownloadPDF}
@@ -210,7 +220,7 @@ export default function ReportClientPage() {
         {/* Results Section */}
         {reportData && (
           <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Summary Stats */}
+            {/* Summary Stats (SAMA) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-sm">
                 <CardContent className="p-4 sm:p-6">
@@ -249,6 +259,10 @@ export default function ReportClientPage() {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Pelanggan
                       </th>
+                      {/* [UBAH 3] Tambah Header Kolom Produk */}
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Produk Dibeli
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Status
                       </th>
@@ -261,14 +275,14 @@ export default function ReportClientPage() {
                     {reportData.data.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={6} // Update colspan karena kolom bertambah
                           className="px-4 py-8 text-center text-sm text-gray-500"
                         >
                           Tidak ada data transaksi pada periode ini.
                         </td>
                       </tr>
                     ) : (
-                      reportData.data.map((row) => (
+                      reportData.data.map((row: any) => (
                         <tr key={row.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">
                             {row.invoiceNumber}
@@ -278,6 +292,13 @@ export default function ReportClientPage() {
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
                             {row.customerName}
+                          </td>
+                          {/* [UBAH 4] Tambah Sel Data Produk */}
+                          <td
+                            className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate"
+                            title={row.products}
+                          >
+                            {row.products || "-"}
                           </td>
                           <td className="px-4 py-3 text-sm">
                             <span
@@ -309,7 +330,7 @@ export default function ReportClientPage() {
                   </CardContent>
                 </Card>
               ) : (
-                reportData.data.map((row) => (
+                reportData.data.map((row: any) => (
                   <Card key={row.id} className="shadow-sm">
                     <div
                       onClick={() => toggleExpandRow(row.id)}
@@ -331,7 +352,6 @@ export default function ReportClientPage() {
                         />
                       </div>
 
-                      {/* Summary Row */}
                       <div className="flex justify-between items-center mt-3 pt-3 border-t">
                         <span
                           className={`px-2 py-1 text-xs font-semibold rounded-full 
@@ -360,7 +380,14 @@ export default function ReportClientPage() {
                             {row.customerName}
                           </span>
                         </div>
-                        <div className="flex justify-between text-sm">
+                        {/* [UBAH 5] Data Produk di Tampilan Mobile */}
+                        <div className="flex flex-col text-sm gap-1">
+                          <span className="text-gray-600">Produk Dibeli:</span>
+                          <span className="font-medium text-gray-900 bg-white p-2 rounded border">
+                            {row.products || "-"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm pt-1">
                           <span className="text-gray-600">Invoice:</span>
                           <span className="font-medium text-gray-900">
                             {row.invoiceNumber}

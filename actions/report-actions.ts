@@ -9,6 +9,7 @@ export type ReportData = {
   customerName: string
   totalAmount: number
   status: string
+  products: string
 }
 
 export type ReportSummary = {
@@ -19,8 +20,6 @@ export type ReportSummary = {
 
 /**
  * Mengambil data laporan berdasarkan rentang tanggal
- * @param startDateStr Tanggal Mulai (YYYY-MM-DD)
- * @param endDateStr Tanggal Akhir (YYYY-MM-DD)
  */
 export async function getReportDataAction (
   startDateStr: string,
@@ -32,21 +31,19 @@ export async function getReportDataAction (
 
   // Konversi string ke Date object
   const start = new Date(startDateStr)
-  // Set jam ke awal hari (00:00:00)
   start.setHours(0, 0, 0, 0)
 
   const end = new Date(endDateStr)
-  // Set jam ke akhir hari (23:59:59)
   end.setHours(23, 59, 59, 999)
 
   try {
     const invoices = await db.invoice.findMany({
       where: {
         createdAt: {
-          gte: start, // Lebih besar atau sama dengan Start Date
-          lte: end // Lebih kecil atau sama dengan End Date
+          gte: start,
+          lte: end
         },
-        // Filter status yang dianggap valid untuk laporan
+        // Filter status: Hanya ambil yang sudah dibayar/selesai/proses
         status: {
           in: ['PAID', 'SELESAI', 'SEDANG_DISIAPKAN', 'SEDANG_PENGIRIMAN']
         }
@@ -60,18 +57,44 @@ export async function getReportDataAction (
         createdAt: true,
         customerName: true,
         totalAmount: true,
-        status: true
+        status: true,
+        // Ambil data items
+        items: {
+          select: {
+            quantity: true,
+            gramasi: true,
+            // [FIX] Hapus 'variant', hanya ambil quantity dan relasi product
+            product: {
+              select: {
+                nama: true // [FIX] Menggunakan 'nama' sesuai schema SossilverProduct
+              }
+            }
+          }
+        }
       }
     })
 
-    const data = invoices.map(inv => ({
-      id: inv.id,
-      invoiceNumber: inv.invoiceNumber,
-      date: inv.createdAt,
-      customerName: inv.customerName,
-      totalAmount: inv.totalAmount,
-      status: inv.status
-    }))
+    // Mapping data agar formatnya sesuai untuk Frontend
+    const data: ReportData[] = invoices.map(inv => {
+      // Gabungkan nama produk menjadi string: "Cincin Emas x1, Kalung Perak x2"
+      const productString = inv.items
+        .map(item => {
+          const productName = item.product?.nama || 'Produk Dihapus'
+          const gramasiInfo = item.gramasi > 0 ? ` (${item.gramasi}gr)` : '';
+          return `${productName}${gramasiInfo} x${item.quantity}`
+        })
+        .join(', ')
+
+      return {
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        date: inv.createdAt,
+        customerName: inv.customerName,
+        totalAmount: inv.totalAmount,
+        status: inv.status,
+        products: productString || '-' // Masukkan ke kolom products
+      }
+    })
 
     const totalRevenue = data.reduce((acc, curr) => acc + curr.totalAmount, 0)
 
