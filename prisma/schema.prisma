@@ -139,6 +139,9 @@ model Invoice {
 
   // Relasi ke Item (SAMA)
   items           InvoiceItem[]
+
+  factoryPaymentId String?
+  factoryPayment   FactoryPayment? @relation(fields: [factoryPaymentId], references: [id])
 }
 
 model InvoiceItem {
@@ -181,3 +184,20 @@ model PayoutRequest {
 
 // [DIHAPUS] Enum InvoiceStatus dihapus
 // karena Anda menggunakan 'String'
+
+
+// 2. Buat Model Baru: FactoryPayment
+model FactoryPayment {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  periodEnd    DateTime
+  
+  // [UBAH INI] Dari Int (Rupiah) jadi Float (Gram)
+  totalGramasi Float     
+  
+  status       String    @default("UNPAID")
+  proofUrl     String?
+  createdAt    DateTime  @default(now())
+  paidAt       DateTime?
+  invoices     Invoice[]
+}
