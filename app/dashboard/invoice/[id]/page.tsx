@@ -1,4 +1,4 @@
-// app/dashboard/invoice/[id]/page.tsx
+// src/app/dashboard/invoice/[id]/page.tsx
 
 import { getInvoiceByIdAction } from "@/actions/invoice-actions";
 import { notFound } from "next/navigation";
@@ -8,33 +8,28 @@ import { InvoiceActionsClient } from "../_components/InvoiceActionsClient";
 import { ConfirmPriceForm } from "../_components/ConfirmPriceForm";
 import { InvoiceTemplate } from "../_components/invoice/InvoiceTemplate";
 
-// ✅ Tipe yang benar untuk Next.js 15
 interface InvoiceDetailPageProps {
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-// ✅ Component harus async
 export default async function InvoiceDetailPage({
   params,
 }: InvoiceDetailPageProps) {
-  // ✅ Await params untuk mendapatkan id
   const { id } = await params;
 
   // Fetch invoice data
   const invoice = await getInvoiceByIdAction(id);
 
-  // Handle not found
   if (!invoice) {
     notFound();
   }
 
-  // Determine if waiting for admin confirmation
   const isWaitingForAdmin = invoice.status === "MENUNGGU_KONFIRMASI_ADMIN";
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
-      {/* Invoice Template */}
+      {/* Invoice Template (Tampilan Struk) */}
       <section className="bg-white rounded-lg shadow-sm">
         <InvoiceTemplate invoice={invoice} />
       </section>
@@ -44,11 +39,10 @@ export default async function InvoiceDetailPage({
         <GeneratePdfButton />
       </div>
 
-      {/* Admin Actions Panel */}
+      {/* Admin Actions Panel (Form Aksi) */}
       <section className="bg-gray-50 rounded-lg p-6">
         <Suspense fallback={<AdminActionsSkeleton />}>
           {isWaitingForAdmin ? (
-            // Show shipping/discount form when waiting for confirmation
             <div>
               <h3 className="text-lg font-semibold mb-4">
                 Konfirmasi Harga Invoice
@@ -59,13 +53,14 @@ export default async function InvoiceDetailPage({
               />
             </div>
           ) : (
-            // Show normal actions for other statuses
             <div>
               <h3 className="text-lg font-semibold mb-4">Aksi Invoice</h3>
               <InvoiceActionsClient
                 invoiceId={invoice.id}
                 currentStatus={invoice.status}
                 currentProofUrl={invoice.paymentProofUrl}
+                // ✅ [PENTING] Tambahkan baris ini agar resi muncul di form input
+                currentResi={invoice.trackingNumber}
               />
             </div>
           )}
@@ -75,17 +70,13 @@ export default async function InvoiceDetailPage({
   );
 }
 
-// ✅ Generate metadata untuk SEO
+// Generate metadata untuk SEO
 export async function generateMetadata({ params }: InvoiceDetailPageProps) {
   const { id } = await params;
-
-  // Optionally fetch invoice for more detailed metadata
   const invoice = await getInvoiceByIdAction(id);
 
   if (!invoice) {
-    return {
-      title: "Invoice Not Found",
-    };
+    return { title: "Invoice Not Found" };
   }
 
   return {
@@ -94,7 +85,6 @@ export async function generateMetadata({ params }: InvoiceDetailPageProps) {
   };
 }
 
-// Loading skeleton component
 function AdminActionsSkeleton() {
   return (
     <div className="animate-pulse space-y-4">

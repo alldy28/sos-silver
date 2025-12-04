@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use server'
 
 import { db } from '@/lib/db'
@@ -6,7 +7,7 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 // Hapus put dan del dari @vercel/blob karena kita pakai fs
 // import { put, del } from "@vercel/blob";
 import { z } from 'zod'
-import { Prisma, SossilverProduct, Role } from '@prisma/client'
+import { SossilverProduct, Role } from '@prisma/client'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import fs from 'fs/promises'
@@ -35,6 +36,13 @@ export type InvoiceState = {
 export type CreateInvoiceState = InvoiceState & {
   invoiceId?: string
 }
+
+
+const TrackingSchema = z.object({
+  id: z.string(),
+  trackingNumber: z.string().min(3, { message: 'Nomor resi terlalu pendek' })
+})
+
 
 // ... (Skema Zod TETAP SAMA) ...
 const CartItemSchema = z.object({
@@ -653,3 +661,40 @@ export async function createCustomerOrderAction (
   }
   redirect('/myaccount')
 }
+
+
+export async function updateTrackingNumberAction (
+  prevState: InvoiceState,
+  formData: FormData
+): Promise<InvoiceState> {
+  const validatedFields = TrackingSchema.safeParse({
+    id: formData.get('id'),
+    trackingNumber: formData.get('trackingNumber')
+  })
+
+  if (!validatedFields.success) {
+    return {
+      status: 'error',
+      message: 'Input tidak valid',
+      errors: validatedFields.error.flatten().fieldErrors
+    }
+  }
+
+  const { id, trackingNumber } = validatedFields.data
+
+  try {
+    await db.invoice.update({
+      where: { id },
+      data: {
+        // Pastikan nama kolom di database Anda sesuai (misal: trackingNumber atau resi)
+        trackingNumber: trackingNumber
+      }
+    })
+
+    revalidatePath('/dashboard/invoices') // Sesuaikan path
+    return { status: 'success', message: 'Nomor Resi berhasil disimpan' }
+  } catch (error) {
+    return { status: 'error', message: 'Gagal menyimpan resi' }
+  }
+}
+
