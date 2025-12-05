@@ -122,7 +122,7 @@ export async function uploadFactoryProofAction (
     }
 
     await fs.writeFile(path.join(uploadDir, filename), buffer)
-    const fileUrl = `/uploads/tagihan-produksi/${filename}`
+    const fileUrl = `api/uploads/uploads/tagihan-produksi/${filename}`
 
     await db.factoryPayment.update({
       where: { id },
