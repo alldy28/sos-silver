@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createFactoryPaymentBatch } from "@/actions/factory-actions"; // Pastikan path import benar
+import { createFactoryPaymentBatch } from "@/actions/factory-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 
 export function CreateFactoryBatchForm() {
   const [date, setDate] = useState("");
-  const [time, setTime] = useState("23:59"); // Default ke akhir hari
+  const [time, setTime] = useState("23:59");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -19,7 +19,6 @@ export function CreateFactoryBatchForm() {
     if (!date || !time)
       return toast.error("Harap pilih tanggal dan jam cut-off!");
 
-    // Gabungkan tanggal dan jam format ISO (YYYY-MM-DDTHH:mm)
     const dateTimeStr = `${date}T${time}`;
 
     const confirm = window.confirm(
@@ -29,13 +28,12 @@ export function CreateFactoryBatchForm() {
 
     setLoading(true);
     try {
-      // Kirim string datetime lengkap ke server action
       const res = await createFactoryPaymentBatch(dateTimeStr);
 
       if (res.success) {
         toast.success(res.message);
         setDate("");
-        setTime("23:59"); // Reset jam ke default
+        setTime("23:59");
         router.refresh();
       } else {
         toast.error(res.message);
@@ -61,7 +59,6 @@ export function CreateFactoryBatchForm() {
       </div>
 
       <div className="flex flex-col md:flex-row md:items-end gap-4">
-        {/* INPUT TANGGAL */}
         <div className="w-full md:w-1/4 space-y-2">
           <Label
             htmlFor="cutoff-date"
@@ -78,7 +75,6 @@ export function CreateFactoryBatchForm() {
           />
         </div>
 
-        {/* INPUT JAM */}
         <div className="w-full md:w-1/4 space-y-2">
           <Label
             htmlFor="cutoff-time"
@@ -95,7 +91,6 @@ export function CreateFactoryBatchForm() {
           />
         </div>
 
-        {/* TOMBOL AKSI */}
         <div className="w-full md:w-auto">
           <Button
             onClick={handleSubmit}

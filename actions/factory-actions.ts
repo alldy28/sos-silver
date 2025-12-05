@@ -7,20 +7,15 @@ import { z } from 'zod'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-// --- ACTION 1: GENERATE TAGIHAN PABRIK (CUT-OFF SYSTEM) ---
+// --- ACTION 1: GENERATE TAGIHAN PABRIK (CUT-OFF SYSTEM WITH TIME) ---
 export async function createFactoryPaymentBatch (cutOffDateTimeStr: string) {
   if (!cutOffDateTimeStr)
     return { success: false, message: 'Waktu cut-off wajib diisi' }
 
-  // Menerima format lengkap "YYYY-MM-DDTHH:mm" dari frontend
   const cutOffDate = new Date(cutOffDateTimeStr)
 
   try {
     // 1. CARI INVOICE YANG VALID
-    // Syarat:
-    // a. Tanggal buat <= Cut-off (Spesifik sampai jam-nya)
-    // b. Belum masuk tagihan manapun (factoryPaymentId: null)
-    // c. Status bukan CANCELLED dan bukan UNPAID/WAITING (Harus sudah diproses)
     const pendingInvoices = await db.invoice.findMany({
       where: {
         createdAt: { lte: cutOffDate },
@@ -30,7 +25,7 @@ export async function createFactoryPaymentBatch (cutOffDateTimeStr: string) {
         }
       },
       include: {
-        items: true // Ambil items untuk hitung gramasi
+        items: true
       }
     })
 
@@ -41,22 +36,25 @@ export async function createFactoryPaymentBatch (cutOffDateTimeStr: string) {
       }
     }
 
-    // 2. HITUNG TOTAL GRAMASI
+    // 2. HITUNG TOTAL GRAMASI (Gramasi x Qty)
     let totalBatchGramasi = 0
 
     pendingInvoices.forEach(inv => {
       inv.items.forEach(item => {
-        // Pastikan gramasi ada nilainya, jika null anggap 0
-        totalBatchGramasi += item.gramasi || 0
+        const beratPerItem = item.gramasi || 0
+        const qty = item.quantity || 1
+
+        // [PERBAIKAN UTAMA DI SINI]
+        totalBatchGramasi += beratPerItem * qty
       })
     })
 
     // 3. SIMPAN KE DATABASE
     await db.factoryPayment.create({
       data: {
-        code: `FP-${Date.now()}`, // Generate kode unik
-        periodEnd: cutOffDate, // Simpan tanggal DAN jam nya
-        totalGramasi: totalBatchGramasi, // Simpan sebagai Berat (Float)
+        code: `FP-${Date.now()}`,
+        periodEnd: cutOffDate,
+        totalGramasi: totalBatchGramasi,
         status: 'UNPAID',
         invoices: {
           connect: pendingInvoices.map(inv => ({ id: inv.id }))
@@ -67,7 +65,11 @@ export async function createFactoryPaymentBatch (cutOffDateTimeStr: string) {
     revalidatePath('/dashboard/factory')
     return {
       success: true,
-      message: `Sukses! ${pendingInvoices.length} invoice masuk batch. Total: ${totalBatchGramasi} Gram`
+      message: `Sukses! ${
+        pendingInvoices.length
+      } invoice masuk batch. Total: ${totalBatchGramasi.toLocaleString(
+        'id-ID'
+      )} Gram`
     }
   } catch (error) {
     console.error('Create Batch Error:', error)
@@ -75,10 +77,7 @@ export async function createFactoryPaymentBatch (cutOffDateTimeStr: string) {
   }
 }
 
-
 // --- ACTION 2: UPLOAD BUKTI & TANDAI LUNAS ---
-
-// Schema Validasi File
 const UploadSchema = z.object({
   id: z.string(),
   file: z
@@ -107,11 +106,8 @@ export async function uploadFactoryProofAction (
   const { id, file } = validatedFields.data
 
   try {
-    // 1. Simpan File ke Folder public/uploads/tagihan-produksi
     const buffer = Buffer.from(await file.arrayBuffer())
     const filename = `factory-${Date.now()}-${file.name.replace(/\s+/g, '-')}`
-
-    // [UBAH BAGIAN INI] Tambahkan 'tagihan-produksi' ke dalam path
     const uploadDir = path.join(
       process.cwd(),
       'public',
@@ -119,20 +115,15 @@ export async function uploadFactoryProofAction (
       'tagihan-produksi'
     )
 
-    // Pastikan folder ada (Code ini akan otomatis membuat folder jika belum ada)
     try {
       await fs.access(uploadDir)
     } catch {
       await fs.mkdir(uploadDir, { recursive: true })
     }
 
-    // Tulis file ke folder tersebut
     await fs.writeFile(path.join(uploadDir, filename), buffer)
-
-    // [UBAH BAGIAN INI JUGA] Sesuaikan URL agar bisa diakses browser
     const fileUrl = `/uploads/tagihan-produksi/${filename}`
 
-    // 2. Update Database
     await db.factoryPayment.update({
       where: { id },
       data: {
@@ -145,14 +136,10 @@ export async function uploadFactoryProofAction (
     revalidatePath('/dashboard/factory')
     return {
       status: 'success',
-      message: 'Bukti berhasil diupload ke folder tagihan-produksi!'
+      message: 'Bukti berhasil diupload. Tagihan LUNAS!'
     }
   } catch (error) {
     console.error('Upload Error:', error)
     return { status: 'error', message: 'Terjadi kesalahan saat upload.' }
   }
 }
-
-
-
-
